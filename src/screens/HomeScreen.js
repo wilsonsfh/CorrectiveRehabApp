@@ -80,7 +80,8 @@ const HomeScreen = ({ navigation }) => {
     ]);
 
     setRecentLog(recentRes.data ?? null);
-    setDraftSession(draftRes.data ?? null);
+    const draft = draftRes.data;
+    setDraftSession(draft?.session_videos?.length > 0 ? draft : null);
 
     const uniqueIssues = new Set((issuesRes.data ?? []).map(r => r.habit_id));
     setStats({

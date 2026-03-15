@@ -77,7 +77,7 @@ export default function LinkSessionScreen({ navigation, route }) {
     Alert.alert(
       'Session Saved',
       `${category.label} session recorded with ${recordedAngles.length} angle${recordedAngles.length > 1 ? 's' : ''}.`,
-      [{ text: 'Done', onPress: () => navigation.navigate('Home') }]
+      [{ text: 'Done', onPress: () => navigation.popToTop() }]
     );
   };
 
