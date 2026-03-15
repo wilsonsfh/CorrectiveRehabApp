@@ -37,6 +37,7 @@ const HomeScreen = ({ navigation }) => {
   const [recentLog, setRecentLog] = useState(null);
   const [stats, setStats] = useState({ logs: 0, activeIssues: 0, sessions: 0 });
   const [loadingData, setLoadingData] = useState(true);
+  const [draftSession, setDraftSession] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -48,7 +49,7 @@ const HomeScreen = ({ navigation }) => {
   async function fetchData() {
     setLoadingData(true);
 
-    const [recentRes, logsCountRes, issuesRes, sessionsCountRes] = await Promise.all([
+    const [recentRes, logsCountRes, issuesRes, sessionsCountRes, draftRes] = await Promise.all([
       supabase
         .from('habit_logs')
         .select('*')
@@ -68,9 +69,18 @@ const HomeScreen = ({ navigation }) => {
         .from('workout_sessions')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id),
+      supabase
+        .from('gym_sessions')
+        .select('*, session_videos(angle)')
+        .eq('user_id', user.id)
+        .eq('status', 'draft')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     setRecentLog(recentRes.data ?? null);
+    setDraftSession(draftRes.data ?? null);
 
     const uniqueIssues = new Set((issuesRes.data ?? []).map(r => r.habit_id));
     setStats({
@@ -154,7 +164,7 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.heroActions}>
               <TouchableOpacity
                 style={styles.primaryBtn}
-                onPress={() => navigation.navigate('Log')}
+                onPress={() => navigation.navigate('SessionSetup')}
                 activeOpacity={0.8}
               >
                 <LinearGradient
@@ -178,6 +188,24 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* ─── DRAFT RECORDING BANNER ─── */}
+          {draftSession && (
+            <TouchableOpacity
+              style={styles.draftBanner}
+              onPress={() => navigation.navigate('SessionSetup', { draftSession })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.draftDot} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.draftTitle}>Continue Recording</Text>
+                <Text style={styles.draftSub}>
+                  {draftSession.category_label} · {draftSession.session_videos?.length ?? 0} angle{(draftSession.session_videos?.length ?? 0) !== 1 ? 's' : ''} saved
+                </Text>
+              </View>
+              <ChevronRight color={COLORS.primary} size={18} />
+            </TouchableOpacity>
+          )}
 
           {/* ─── SYMMETRY SCORE (placeholder) ─── */}
           <View style={styles.scoreCard}>
@@ -699,6 +727,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
     lineHeight: 14,
+  },
+
+  // ─── DRAFT BANNER ───
+  draftBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.m,
+    backgroundColor: COLORS.primaryGlow,
+    borderRadius: RADIUS.m,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    padding: SPACING.m,
+    marginBottom: SPACING.m,
+  },
+  draftDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
+  },
+  draftTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  draftSub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
 });
 

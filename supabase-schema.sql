@@ -74,6 +74,41 @@ alter table public.habit_logs
 alter table public.habit_logs
   add column if not exists duration_minutes int;
 
+-- ─── PHASE 3 ADDITIONS ───
+
+create table public.gym_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  category_id text not null,
+  category_label text not null,
+  date date not null default current_date,
+  status text default 'draft' check (status in ('draft', 'complete')),
+  notes text,
+  created_at timestamptz default now()
+);
+
+create table public.session_videos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  session_id uuid references public.gym_sessions(id) on delete cascade not null,
+  category_id text not null,
+  angle text not null check (angle in ('side', 'front', 'above')),
+  storage_path text not null,
+  created_at timestamptz default now()
+);
+
+alter table public.gym_sessions enable row level security;
+alter table public.session_videos enable row level security;
+
+create policy "Users own gym_sessions" on public.gym_sessions
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "Users own session_videos" on public.session_videos
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Storage bucket: create in Supabase Dashboard → Storage → New bucket
+-- Name: session-videos, Private: true
+
 -- ─── INDEXES ───
 create index idx_habit_logs_user_date on public.habit_logs(user_id, date desc);
 create index idx_workout_sessions_user on public.workout_sessions(user_id, completed_at desc);

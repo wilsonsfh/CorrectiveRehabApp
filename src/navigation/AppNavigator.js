@@ -8,11 +8,16 @@ import LibraryScreen from '../screens/LibraryScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import LogScreen from '../screens/LogScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import SessionSetupScreen from '../screens/SessionSetupScreen';
+import RecordVideoScreen from '../screens/RecordVideoScreen';
+import VideoPreviewScreen from '../screens/VideoPreviewScreen';
+import LinkSessionScreen from '../screens/LinkSessionScreen';
 import { COLORS } from '../constants/theme';
 import { linking } from '../lib/linking';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+const RootStack = createNativeStackNavigator();
 
 const LibraryStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -34,65 +39,79 @@ const DARK_THEME = {
   },
 };
 
+function TabNavigator() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.textTertiary,
+        tabBarStyle: {
+          backgroundColor: COLORS.surface,
+          borderTopWidth: 1,
+          borderTopColor: COLORS.border,
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 4,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ tabBarIcon: ({ color, size }) => <Home color={color} size={size} /> }}
+      />
+      <Tab.Screen
+        name="Library"
+        component={LibraryStack}
+        options={{ tabBarIcon: ({ color, size }) => <Library color={color} size={size} /> }}
+      />
+      <Tab.Screen
+        name="Log"
+        component={LogScreen}
+        options={{ tabBarIcon: ({ color, size }) => <Activity color={color} size={size} /> }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ tabBarIcon: ({ color, size }) => <User color={color} size={size} /> }}
+      />
+    </Tab.Navigator>
+  );
+}
+
 export default function AppNavigator({ navigationRef }) {
   return (
     <NavigationContainer ref={navigationRef} theme={DARK_THEME} linking={linking}>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: COLORS.textTertiary,
-          tabBarStyle: {
-            backgroundColor: COLORS.surface,
-            borderTopWidth: 1,
-            borderTopColor: COLORS.border,
-            height: 64,
-            paddingBottom: 8,
-            paddingTop: 4,
-          },
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontWeight: '600',
-          },
-        }}
-      >
-        <Tab.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Home color={color} size={size} />
-            ),
-          }}
+      <RootStack.Navigator screenOptions={{ headerShown: false }}>
+        {/* Main tabs */}
+        <RootStack.Screen name="Tabs" component={TabNavigator} />
+        {/* Record modal stack — slides up over tabs */}
+        <RootStack.Screen
+          name="SessionSetup"
+          component={SessionSetupScreen}
+          options={{ presentation: 'modal' }}
         />
-        <Tab.Screen
-          name="Library"
-          component={LibraryStack}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Library color={color} size={size} />
-            ),
-          }}
+        <RootStack.Screen
+          name="RecordVideo"
+          component={RecordVideoScreen}
+          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
         />
-        <Tab.Screen
-          name="Log"
-          component={LogScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Activity color={color} size={size} />
-            ),
-          }}
+        <RootStack.Screen
+          name="VideoPreview"
+          component={VideoPreviewScreen}
+          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
         />
-        <Tab.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <User color={color} size={size} />
-            ),
-          }}
+        <RootStack.Screen
+          name="LinkSession"
+          component={LinkSessionScreen}
+          options={{ presentation: 'modal' }}
         />
-      </Tab.Navigator>
+      </RootStack.Navigator>
     </NavigationContainer>
   );
 }
