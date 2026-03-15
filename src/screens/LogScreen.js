@@ -9,11 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, RADIUS } from '../constants/theme';
 import { GYM_HABITS } from '../data/mockData';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import {
   CheckCircle,
   Zap,
@@ -23,18 +26,41 @@ import {
 
 const LIFTS = ['Back Squat', 'Front Squat', 'Deadlift', 'Bench Press', 'OHP', 'Barbell Row', 'Lunge'];
 
+const SEVERITY_OPTIONS = ['mild', 'moderate', 'severe'];
+
 const LogScreen = ({ navigation }) => {
+  const { user } = useAuth();
   const [selectedHabit, setSelectedHabit] = useState(null);
   const [selectedLift, setSelectedLift] = useState(null);
   const [sets, setSets] = useState('');
   const [notes, setNotes] = useState('');
+  const [severity, setSeverity] = useState('moderate');
   const [showLifts, setShowLifts] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const selectedHabitData = GYM_HABITS.find((h) => h.id === selectedHabit);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedHabit || !sets) {
       Alert.alert('Missing Info', 'Select an asymmetry and enter the number of sets affected.');
+      return;
+    }
+
+    setSaving(true);
+    const { error } = await supabase.from('habit_logs').insert({
+      user_id: user.id,
+      date: new Date().toISOString().split('T')[0],
+      habit_id: selectedHabit,
+      habit_label: selectedHabitData.label,
+      sets: parseInt(sets, 10),
+      feeling: notes || null,
+      exercise: selectedLift || null,
+      severity,
+    });
+    setSaving(false);
+
+    if (error) {
+      Alert.alert('Error', error.message);
       return;
     }
 
@@ -49,6 +75,7 @@ const LogScreen = ({ navigation }) => {
             setSelectedLift(null);
             setSets('');
             setNotes('');
+            setSeverity('moderate');
             navigation.navigate('Home');
           },
         },
@@ -179,6 +206,33 @@ const LogScreen = ({ navigation }) => {
               />
             </View>
 
+            {/* ─── SEVERITY ─── */}
+            <View style={styles.section}>
+              <Text style={styles.label}>SEVERITY</Text>
+              <View style={styles.chipContainer}>
+                {SEVERITY_OPTIONS.map((opt) => (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[
+                      styles.chip,
+                      severity === opt && styles.severityChipSelected,
+                    ]}
+                    onPress={() => setSeverity(opt)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        severity === opt && styles.severityChipTextSelected,
+                      ]}
+                    >
+                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
             {/* ─── NOTES ─── */}
             <View style={styles.section}>
               <Text style={styles.label}>NOTES (OPTIONAL)</Text>
@@ -207,6 +261,7 @@ const LogScreen = ({ navigation }) => {
               style={styles.saveBtn}
               onPress={handleSave}
               activeOpacity={0.8}
+              disabled={saving}
             >
               <LinearGradient
                 colors={[COLORS.primary, COLORS.primaryDim]}
@@ -214,8 +269,14 @@ const LogScreen = ({ navigation }) => {
                 end={{ x: 1, y: 1 }}
                 style={styles.saveBtnGradient}
               >
-                <CheckCircle color={COLORS.background} size={20} />
-                <Text style={styles.saveBtnText}>Save Log</Text>
+                {saving ? (
+                  <ActivityIndicator color={COLORS.background} />
+                ) : (
+                  <>
+                    <CheckCircle color={COLORS.background} size={20} />
+                    <Text style={styles.saveBtnText}>Save Log</Text>
+                  </>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           </ScrollView>
@@ -279,6 +340,13 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: COLORS.primary,
+  },
+  severityChipSelected: {
+    backgroundColor: COLORS.accentGlow,
+    borderColor: COLORS.accent,
+  },
+  severityChipTextSelected: {
+    color: COLORS.accent,
   },
 
   // ─── IMPACT CARD ───

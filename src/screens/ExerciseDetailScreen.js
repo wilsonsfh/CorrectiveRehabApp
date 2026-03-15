@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, RADIUS } from '../constants/theme';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import {
   ChevronLeft,
   Clock,
@@ -26,12 +30,35 @@ const DIFFICULTY_COLORS = {
 
 const ExerciseDetailScreen = ({ route, navigation }) => {
   const { exercise } = route.params;
+  const { user } = useAuth();
+  const [completed, setCompleted] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const player = useVideoPlayer(exercise.videoUrl, (player) => {
     player.loop = true;
   });
 
   const diffColor = DIFFICULTY_COLORS[exercise.difficulty] || COLORS.primary;
+
+  const handleComplete = async () => {
+    if (completed) return;
+
+    setSaving(true);
+    const { error } = await supabase.from('workout_sessions').insert({
+      user_id: user.id,
+      exercise_id: exercise.id,
+      completed_at: new Date().toISOString(),
+      notes: exercise.title,
+    });
+    setSaving(false);
+
+    if (error) {
+      Alert.alert('Error', error.message);
+      return;
+    }
+
+    setCompleted(true);
+  };
 
   return (
     <View style={styles.container}>
@@ -109,15 +136,32 @@ const ExerciseDetailScreen = ({ route, navigation }) => {
         </View>
 
         {/* Complete button */}
-        <TouchableOpacity style={styles.completeBtn} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.completeBtn}
+          activeOpacity={0.8}
+          onPress={handleComplete}
+          disabled={completed || saving}
+        >
           <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDim]}
+            colors={
+              completed
+                ? [COLORS.success, COLORS.success]
+                : [COLORS.primary, COLORS.primaryDim]
+            }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.completeBtnGradient}
           >
-            <CheckCircle color={COLORS.background} size={20} />
-            <Text style={styles.completeBtnText}>Mark as Complete</Text>
+            {saving ? (
+              <ActivityIndicator color={COLORS.background} />
+            ) : (
+              <>
+                <CheckCircle color={COLORS.background} size={20} />
+                <Text style={styles.completeBtnText}>
+                  {completed ? 'Completed!' : 'Mark as Complete'}
+                </Text>
+              </>
+            )}
           </LinearGradient>
         </TouchableOpacity>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
-import { EXERCISES, HABIT_LOGS, GYM_HABITS } from '../data/mockData';
+import { EXERCISES, GYM_HABITS } from '../data/mockData';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Scan,
   Activity,
@@ -28,11 +32,60 @@ const CARD_GAP = SPACING.m;
 const CARD_WIDTH = (width - SPACING.m * 2 - CARD_GAP) / 2;
 
 const HomeScreen = ({ navigation }) => {
-  const recentLog = HABIT_LOGS[0];
-  const matchedHabit = GYM_HABITS.find(h => h.label === recentLog?.habit);
-  const suggestedExercise = EXERCISES.find(
-    e => e.title === matchedHabit?.suggestedFix
+  const { user } = useAuth();
+  const [recentLog, setRecentLog] = useState(null);
+  const [stats, setStats] = useState({ logs: 0, activeIssues: 0, sessions: 0 });
+  const [loadingData, setLoadingData] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [])
   );
+
+  async function fetchData() {
+    setLoadingData(true);
+
+    const [recentRes, logsCountRes, issuesRes, sessionsCountRes] = await Promise.all([
+      supabase
+        .from('habit_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('habit_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id),
+      supabase
+        .from('habit_logs')
+        .select('habit_id')
+        .eq('user_id', user.id),
+      supabase
+        .from('workout_sessions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id),
+    ]);
+
+    setRecentLog(recentRes.data ?? null);
+
+    const uniqueIssues = new Set((issuesRes.data ?? []).map(r => r.habit_id));
+    setStats({
+      logs: logsCountRes.count ?? 0,
+      activeIssues: uniqueIssues.size,
+      sessions: sessionsCountRes.count ?? 0,
+    });
+
+    setLoadingData(false);
+  }
+
+  const matchedHabit = recentLog
+    ? GYM_HABITS.find(h => h.id === recentLog.habit_id)
+    : null;
+  const suggestedExercise = matchedHabit
+    ? EXERCISES.find(e => e.title === matchedHabit.suggestedFix)
+    : null;
 
   const FEATURES = [
     {
@@ -186,7 +239,15 @@ const HomeScreen = ({ navigation }) => {
           </View>
 
           {/* ─── ASYMMETRY ALERT ─── */}
-          {recentLog && (
+          {loadingData && (
+            <ActivityIndicator
+              color={COLORS.primary}
+              size="large"
+              style={{ marginVertical: SPACING.l }}
+            />
+          )}
+
+          {!loadingData && recentLog && (
             <>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>LATEST ALERT</Text>
@@ -210,10 +271,10 @@ const HomeScreen = ({ navigation }) => {
                     </View>
                     <View style={styles.alertContent}>
                       <Text style={styles.alertTitle}>
-                        {recentLog.habit} Detected
+                        {recentLog.habit_label} Detected
                       </Text>
                       <Text style={styles.alertMeta}>
-                        {recentLog.exercise} · {recentLog.date}
+                        {recentLog.exercise ?? 'Workout'} · {recentLog.date}
                       </Text>
                     </View>
                     <View style={styles.severityBadge}>
@@ -223,9 +284,11 @@ const HomeScreen = ({ navigation }) => {
                     </View>
                   </View>
 
-                  <Text style={styles.alertDescription}>
-                    {recentLog.feeling}
-                  </Text>
+                  {recentLog.feeling ? (
+                    <Text style={styles.alertDescription}>
+                      {recentLog.feeling}
+                    </Text>
+                  ) : null}
 
                   {matchedHabit && (
                     <View style={styles.alertImpact}>
@@ -255,16 +318,16 @@ const HomeScreen = ({ navigation }) => {
           {/* ─── QUICK STATS ─── */}
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
-              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statValue}>{stats.logs}</Text>
               <Text style={styles.statLabel}>Sessions{'\n'}Logged</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: COLORS.accent }]}>5</Text>
+              <Text style={[styles.statValue, { color: COLORS.accent }]}>{stats.activeIssues}</Text>
               <Text style={styles.statLabel}>Active{'\n'}Asymmetries</Text>
             </View>
             <View style={styles.statCard}>
-              <Text style={[styles.statValue, { color: COLORS.success }]}>3</Text>
-              <Text style={styles.statLabel}>Issues{'\n'}Corrected</Text>
+              <Text style={[styles.statValue, { color: COLORS.success }]}>{stats.sessions}</Text>
+              <Text style={styles.statLabel}>Exercises{'\n'}Completed</Text>
             </View>
           </View>
 

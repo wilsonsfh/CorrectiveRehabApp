@@ -7,8 +7,9 @@ import HomeScreen from '../screens/HomeScreen';
 import LibraryScreen from '../screens/LibraryScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import LogScreen from '../screens/LogScreen';
-import PlaceholderScreen from '../screens/PlaceholderScreen';
+import ProfileScreen from '../screens/ProfileScreen';
 import { COLORS } from '../constants/theme';
+import { linking } from '../lib/linking';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -19,8 +20,6 @@ const LibraryStack = () => (
     <Stack.Screen name="ExerciseDetail" component={ExerciseDetailScreen} />
   </Stack.Navigator>
 );
-
-const ProfileScreen = () => <PlaceholderScreen name="Profile" />;
 
 const DARK_THEME = {
   ...DarkTheme,
@@ -37,7 +36,7 @@ const DARK_THEME = {
 
 export default function AppNavigator() {
   return (
-    <NavigationContainer theme={DARK_THEME}>
+    <NavigationContainer theme={DARK_THEME} linking={linking}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
