@@ -8,7 +8,7 @@ create table public.habit_logs (
   date date not null default current_date,
   habit_id text not null,
   habit_label text not null,
-  sets int not null,
+  sets int,
   feeling text,
   exercise text,
   severity text check (severity in ('mild', 'moderate', 'severe')) default 'moderate',
@@ -63,6 +63,16 @@ create policy "Users can update own workout_sessions"
 create policy "Users can delete own workout_sessions"
   on public.workout_sessions for delete
   using (auth.uid() = user_id);
+
+-- ─── PHASE 2 ADDITIONS ───
+-- Run these if you already ran the Phase 1 schema above
+
+alter table public.habit_logs
+  add column if not exists context text default 'gym'
+    check (context in ('gym', 'daily'));
+
+alter table public.habit_logs
+  add column if not exists duration_minutes int;
 
 -- ─── INDEXES ───
 create index idx_habit_logs_user_date on public.habit_logs(user_id, date desc);

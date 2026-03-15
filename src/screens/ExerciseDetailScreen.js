@@ -69,7 +69,7 @@ const ExerciseDetailScreen = ({ route, navigation }) => {
           style={styles.video}
           contentFit="contain"
           nativeControls={true}
-          allowsFullscreen
+          fullscreenOptions={{ controlsBackgroundColor: '#000' }}
           allowsPictureInPicture
         />
         <TouchableOpacity

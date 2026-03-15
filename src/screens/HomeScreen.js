@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { EXERCISES, GYM_HABITS } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { scheduleDailyNotifications } from '../lib/notifications';
 import {
   Scan,
   Activity,
@@ -40,6 +41,7 @@ const HomeScreen = ({ navigation }) => {
   useFocusEffect(
     useCallback(() => {
       fetchData();
+      scheduleDailyNotifications(user.id);
     }, [])
   );
 

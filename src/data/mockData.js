@@ -69,7 +69,7 @@ export const EXERCISES = [
   },
 ];
 
-// Gym-specific habits to track
+// Gym-specific asymmetries to track during sessions
 export const GYM_HABITS = [
   {
     id: 'hip_shift',
@@ -77,6 +77,7 @@ export const GYM_HABITS = [
     icon: 'move-horizontal',
     gymImpact: 'Causes uneven loading during squats and deadlifts. Your stronger side compensates.',
     suggestedFix: 'Single-Leg RDL',
+    regions: ['hip', 'ankle'],
   },
   {
     id: 'ankle_cave',
@@ -84,6 +85,7 @@ export const GYM_HABITS = [
     icon: 'footprints',
     gymImpact: 'Knee valgus under load. Increases ACL risk and reduces squat depth.',
     suggestedFix: 'Cossack Squat',
+    regions: ['ankle', 'knee', 'hip'],
   },
   {
     id: 'hip_hike',
@@ -91,6 +93,7 @@ export const GYM_HABITS = [
     icon: 'arrow-up-down',
     gymImpact: 'One hip drops during single-leg work. Signals weak glute medius.',
     suggestedFix: 'Banded Clamshell',
+    regions: ['hip', 'knee'],
   },
   {
     id: 'shoulder_shrug',
@@ -98,6 +101,7 @@ export const GYM_HABITS = [
     icon: 'chevrons-up',
     gymImpact: 'Upper traps dominate during pressing. Limits overhead strength and causes neck strain.',
     suggestedFix: 'Face Pull + External Rotation',
+    regions: ['shoulder', 'spine'],
   },
   {
     id: 'forward_lean',
@@ -105,6 +109,7 @@ export const GYM_HABITS = [
     icon: 'trending-down',
     gymImpact: 'Excessive torso tilt in squats. Shifts load to lower back instead of quads/glutes.',
     suggestedFix: 'Goblet Squat Pause',
+    regions: ['spine', 'hip'],
   },
   {
     id: 'butt_wink',
@@ -112,8 +117,35 @@ export const GYM_HABITS = [
     icon: 'rotate-ccw',
     gymImpact: 'Posterior pelvic tilt at squat depth. Puts shear force on lumbar discs.',
     suggestedFix: 'Goblet Squat Pause',
+    regions: ['spine', 'hip'],
   },
 ];
+
+// Off-gym daily habits that reinforce or worsen gym asymmetries
+export const DAILY_HABITS = [
+  // Hip region
+  { id: 'cross_legged_sit',     label: 'Sat cross-legged',                  regions: ['hip', 'knee'] },
+  { id: 'wallet_back_pocket',   label: 'Wallet in back pocket while sitting', regions: ['hip'] },
+  { id: 'uneven_stance',        label: 'Stood with weight shifted to one leg', regions: ['hip', 'ankle'] },
+  { id: 'bag_one_shoulder',     label: 'Carried bag on one shoulder',        regions: ['hip', 'shoulder'] },
+  // Ankle / Knee region
+  { id: 'unsupportive_shoes',   label: 'Wore flat/unsupportive shoes',       regions: ['ankle', 'knee'] },
+  { id: 'prolonged_standing',   label: 'Prolonged standing on hard floor',   regions: ['ankle'] },
+  // Shoulder / Spine region
+  { id: 'phone_neck',           label: 'Phone neck (looking down)',          regions: ['shoulder', 'spine'] },
+  { id: 'desk_hunch',           label: 'Hunched at desk',                    regions: ['shoulder', 'spine'] },
+  { id: 'rounded_back_driving', label: 'Rounded back while driving',         regions: ['spine', 'hip'] },
+  { id: 'deep_couch_sit',       label: 'Slouched in deep/low couch',         regions: ['spine', 'hip'] },
+];
+
+// Infer related daily habits from a gym habit via region intersection
+export function getRelatedDailyHabits(gymHabitId) {
+  const gymHabit = GYM_HABITS.find(h => h.id === gymHabitId);
+  if (!gymHabit) return [];
+  return DAILY_HABITS.filter(d =>
+    d.regions.some(r => gymHabit.regions.includes(r))
+  );
+}
 
 export const HABIT_LOGS = [
   {

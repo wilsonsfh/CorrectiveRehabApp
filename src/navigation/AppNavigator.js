@@ -34,9 +34,9 @@ const DARK_THEME = {
   },
 };
 
-export default function AppNavigator() {
+export default function AppNavigator({ navigationRef }) {
   return (
-    <NavigationContainer theme={DARK_THEME} linking={linking}>
+    <NavigationContainer ref={navigationRef} theme={DARK_THEME} linking={linking}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
