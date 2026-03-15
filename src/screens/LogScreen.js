@@ -1,102 +1,227 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, SPACING } from '../constants/theme';
-import { CheckCircle, AlertTriangle } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, SPACING, RADIUS } from '../constants/theme';
+import { GYM_HABITS } from '../data/mockData';
+import {
+  CheckCircle,
+  Zap,
+  AlertTriangle,
+  ChevronDown,
+} from 'lucide-react-native';
 
-const HABITS = ['Crossed Legs', 'Slouching', 'Neck Strain', 'Leaning on One Leg'];
+const LIFTS = ['Back Squat', 'Front Squat', 'Deadlift', 'Bench Press', 'OHP', 'Barbell Row', 'Lunge'];
 
 const LogScreen = ({ navigation }) => {
   const [selectedHabit, setSelectedHabit] = useState(null);
-  const [duration, setDuration] = useState('');
+  const [selectedLift, setSelectedLift] = useState(null);
+  const [sets, setSets] = useState('');
   const [notes, setNotes] = useState('');
+  const [showLifts, setShowLifts] = useState(false);
+
+  const selectedHabitData = GYM_HABITS.find((h) => h.id === selectedHabit);
 
   const handleSave = () => {
-    if (!selectedHabit || !duration) {
-      Alert.alert('Missing Info', 'Please select a habit and enter duration.');
+    if (!selectedHabit || !sets) {
+      Alert.alert('Missing Info', 'Select an asymmetry and enter the number of sets affected.');
       return;
     }
-    
-    // In a real app, this would save to Supabase
-    Alert.alert('Saved', `Logged ${duration} mins of ${selectedHabit}. Keep improving!`, [
-      { text: 'OK', onPress: () => {
-        setSelectedHabit(null);
-        setDuration('');
-        setNotes('');
-        navigation.navigate('Home');
-      }}
-    ]);
+
+    Alert.alert(
+      'Logged',
+      `${selectedHabitData.label} detected during ${selectedLift || 'workout'} (${sets} sets). Keep auditing.`,
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            setSelectedHabit(null);
+            setSelectedLift(null);
+            setSets('');
+            setNotes('');
+            navigation.navigate('Home');
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.headerTitle}>Log Bad Habit</Text>
-          <Text style={styles.subtitle}>Tracking is the first step to correction.</Text>
-
-          <View style={styles.section}>
-            <Text style={styles.label}>What did you notice?</Text>
-            <View style={styles.chipContainer}>
-              {HABITS.map((habit) => (
-                <TouchableOpacity
-                  key={habit}
-                  style={[
-                    styles.chip,
-                    selectedHabit === habit && styles.chipSelected
-                  ]}
-                  onPress={() => setSelectedHabit(habit)}
-                >
-                  <Text style={[
-                    styles.chipText,
-                    selectedHabit === habit && styles.chipTextSelected
-                  ]}>{habit}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.label}>Duration (minutes)</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 30"
-              keyboardType="numeric"
-              value={duration}
-              onChangeText={setDuration}
-            />
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.label}>How do you feel? (Optional)</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="e.g. Lower back feels tight..."
-              multiline
-              numberOfLines={4}
-              value={notes}
-              onChangeText={setNotes}
-            />
-          </View>
-
-          <View style={styles.warningBox}>
-            <AlertTriangle color={COLORS.danger} size={24} />
-            <Text style={styles.warningText}>
-              Consistent tracking helps identifying triggers.
+    <View style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <Text style={styles.headerTitle}>LOG ASYMMETRY</Text>
+            <Text style={styles.subtitle}>
+              What did you notice during your session?
             </Text>
-          </View>
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-            <CheckCircle color={COLORS.white} size={24} />
-            <Text style={styles.saveBtnText}>Save Log</Text>
-          </TouchableOpacity>
+            {/* ─── HABIT SELECTION ─── */}
+            <View style={styles.section}>
+              <Text style={styles.label}>DETECTED ISSUE</Text>
+              <View style={styles.chipContainer}>
+                {GYM_HABITS.map((habit) => (
+                  <TouchableOpacity
+                    key={habit.id}
+                    style={[
+                      styles.chip,
+                      selectedHabit === habit.id && styles.chipSelected,
+                    ]}
+                    onPress={() => setSelectedHabit(habit.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        selectedHabit === habit.id && styles.chipTextSelected,
+                      ]}
+                    >
+                      {habit.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            {/* ─── GYM IMPACT (contextual) ─── */}
+            {selectedHabitData && (
+              <View style={styles.impactCard}>
+                <View style={styles.impactHeader}>
+                  <Zap color={COLORS.accent} size={16} />
+                  <Text style={styles.impactLabel}>GYM IMPACT</Text>
+                </View>
+                <Text style={styles.impactText}>
+                  {selectedHabitData.gymImpact}
+                </Text>
+                <View style={styles.impactFix}>
+                  <Text style={styles.impactFixLabel}>Suggested Fix:</Text>
+                  <Text style={styles.impactFixValue}>
+                    {selectedHabitData.suggestedFix}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* ─── LIFT SELECTOR ─── */}
+            <View style={styles.section}>
+              <Text style={styles.label}>DURING WHICH LIFT?</Text>
+              <TouchableOpacity
+                style={styles.dropdown}
+                onPress={() => setShowLifts(!showLifts)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !selectedLift && styles.dropdownPlaceholder,
+                  ]}
+                >
+                  {selectedLift || 'Select a lift...'}
+                </Text>
+                <ChevronDown color={COLORS.textTertiary} size={18} />
+              </TouchableOpacity>
+
+              {showLifts && (
+                <View style={styles.dropdownList}>
+                  {LIFTS.map((lift) => (
+                    <TouchableOpacity
+                      key={lift}
+                      style={[
+                        styles.dropdownItem,
+                        selectedLift === lift && styles.dropdownItemSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedLift(lift);
+                        setShowLifts(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.dropdownItemText,
+                          selectedLift === lift &&
+                            styles.dropdownItemTextSelected,
+                        ]}
+                      >
+                        {lift}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* ─── SETS ─── */}
+            <View style={styles.section}>
+              <Text style={styles.label}>SETS AFFECTED</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. 3"
+                placeholderTextColor={COLORS.textTertiary}
+                keyboardType="numeric"
+                value={sets}
+                onChangeText={setSets}
+              />
+            </View>
+
+            {/* ─── NOTES ─── */}
+            <View style={styles.section}>
+              <Text style={styles.label}>NOTES (OPTIONAL)</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="e.g. Right knee caving on heavy doubles..."
+                placeholderTextColor={COLORS.textTertiary}
+                multiline
+                numberOfLines={4}
+                value={notes}
+                onChangeText={setNotes}
+              />
+            </View>
+
+            {/* ─── WARNING ─── */}
+            <View style={styles.warningBox}>
+              <AlertTriangle color={COLORS.accent} size={20} />
+              <Text style={styles.warningText}>
+                Consistent logging reveals patterns your body hides from you.
+                Track every session.
+              </Text>
+            </View>
+
+            {/* ─── SAVE ─── */}
+            <TouchableOpacity
+              style={styles.saveBtn}
+              onPress={handleSave}
+              activeOpacity={0.8}
+            >
+              <LinearGradient
+                colors={[COLORS.primary, COLORS.primaryDim]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.saveBtnGradient}
+              >
+                <CheckCircle color={COLORS.background} size={20} />
+                <Text style={styles.saveBtnText}>Save Log</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </View>
   );
 };
 
@@ -110,22 +235,24 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontWeight: '900',
     color: COLORS.text,
+    letterSpacing: -0.5,
     marginBottom: SPACING.xs,
   },
   subtitle: {
-    fontSize: 16,
-    color: COLORS.gray,
+    fontSize: 14,
+    color: COLORS.textSecondary,
     marginBottom: SPACING.xl,
   },
   section: {
     marginBottom: SPACING.l,
   },
   label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textTertiary,
+    letterSpacing: 1.5,
     marginBottom: SPACING.s,
   },
   chipContainer: {
@@ -135,62 +262,168 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingHorizontal: SPACING.m,
-    paddingVertical: SPACING.s,
-    borderRadius: 20,
-    backgroundColor: COLORS.white,
+    paddingVertical: 10,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
+    borderColor: COLORS.border,
   },
   chipSelected: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.primaryGlow,
     borderColor: COLORS.primary,
   },
   chipText: {
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  chipTextSelected: {
+    color: COLORS.primary,
+  },
+
+  // ─── IMPACT CARD ───
+  impactCard: {
+    backgroundColor: COLORS.accentGlow,
+    borderRadius: RADIUS.m,
+    padding: SPACING.m,
+    marginBottom: SPACING.l,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 53, 0.15)',
+  },
+  impactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.s,
+    marginBottom: SPACING.s,
+  },
+  impactLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.accent,
+    letterSpacing: 1.5,
+  },
+  impactText: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
+    marginBottom: SPACING.m,
+  },
+  impactFix: {
+    flexDirection: 'row',
+    gap: SPACING.xs,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 107, 53, 0.1)',
+    paddingTop: SPACING.s,
+  },
+  impactFixLabel: {
+    fontSize: 12,
+    color: COLORS.textTertiary,
+    fontWeight: '500',
+  },
+  impactFixValue: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+
+  // ─── DROPDOWN ───
+  dropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    padding: SPACING.m,
+    borderRadius: RADIUS.m,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  dropdownText: {
+    fontSize: 15,
     color: COLORS.text,
     fontWeight: '500',
   },
-  chipTextSelected: {
-    color: COLORS.white,
+  dropdownPlaceholder: {
+    color: COLORS.textTertiary,
   },
-  input: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.m,
-    borderRadius: 12,
-    fontSize: 16,
+  dropdownList: {
+    backgroundColor: COLORS.surfaceLight,
+    borderRadius: RADIUS.m,
+    marginTop: SPACING.s,
     borderWidth: 1,
-    borderColor: COLORS.lightGray,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    padding: SPACING.m,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  dropdownItemSelected: {
+    backgroundColor: COLORS.primaryGlow,
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    color: COLORS.textSecondary,
+    fontWeight: '500',
+  },
+  dropdownItemTextSelected: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+
+  // ─── INPUTS ───
+  input: {
+    backgroundColor: COLORS.surface,
+    padding: SPACING.m,
+    borderRadius: RADIUS.m,
+    fontSize: 15,
+    color: COLORS.text,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   textArea: {
     height: 100,
     textAlignVertical: 'top',
   },
+
+  // ─── WARNING ───
   warningBox: {
     flexDirection: 'row',
-    backgroundColor: '#FFF4E5', // Light orange
+    backgroundColor: COLORS.accentGlow,
     padding: SPACING.m,
-    borderRadius: 12,
-    alignItems: 'center',
+    borderRadius: RADIUS.m,
+    alignItems: 'flex-start',
     gap: SPACING.m,
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.l,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 53, 0.12)',
   },
   warningText: {
-    color: '#B76E00', // Darker orange
+    color: COLORS.accent,
     flex: 1,
     lineHeight: 20,
+    fontSize: 13,
+    fontWeight: '500',
   },
+
+  // ─── SAVE ───
   saveBtn: {
-    backgroundColor: COLORS.secondary,
-    padding: SPACING.m,
-    borderRadius: 12,
+    borderRadius: RADIUS.m,
+    overflow: 'hidden',
+    marginBottom: SPACING.xl,
+  },
+  saveBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 16,
     gap: SPACING.s,
   },
   saveBtnText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
-    fontSize: 18,
+    color: COLORS.background,
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
 });
 

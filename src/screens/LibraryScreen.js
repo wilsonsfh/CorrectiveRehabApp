@@ -1,33 +1,103 @@
 import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS, SPACING } from '../constants/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, SPACING, RADIUS, SHADOWS } from '../constants/theme';
 import { EXERCISES } from '../data/mockData';
+import { Clock, BarChart, ChevronRight, Crosshair } from 'lucide-react-native';
+
+const DIFFICULTY_COLORS = {
+  Beginner: COLORS.success,
+  Intermediate: COLORS.accent,
+  Advanced: COLORS.danger,
+};
 
 const LibraryScreen = ({ navigation }) => {
-  const renderItem = ({ item }) => (
-    <TouchableOpacity 
+  const renderItem = ({ item, index }) => (
+    <TouchableOpacity
       style={styles.card}
       onPress={() => navigation.navigate('ExerciseDetail', { exercise: item })}
+      activeOpacity={0.7}
     >
       <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
-      <View style={styles.cardContent}>
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.subtitle}>{item.category} • {item.duration}</Text>
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.7)']}
+        style={styles.thumbnailOverlay}
+      />
+
+      <View style={styles.cardBody}>
+        <View style={styles.cardTop}>
+          <View style={styles.targetBadge}>
+            <Crosshair color={COLORS.accent} size={12} />
+            <Text style={styles.targetText}>
+              {item.targetIssue?.toUpperCase()}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.diffBadge,
+              {
+                backgroundColor:
+                  (DIFFICULTY_COLORS[item.difficulty] || COLORS.primary) + '20',
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.diffText,
+                {
+                  color:
+                    DIFFICULTY_COLORS[item.difficulty] || COLORS.primary,
+                },
+              ]}
+            >
+              {item.difficulty}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.title} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={styles.category}>{item.category}</Text>
+
+        <View style={styles.cardFooter}>
+          <View style={styles.metaItem}>
+            <Clock color={COLORS.textTertiary} size={13} />
+            <Text style={styles.metaText}>{item.duration}</Text>
+          </View>
+          <ChevronRight color={COLORS.textTertiary} size={16} />
+        </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.headerTitle}>Corrective Library</Text>
-      <FlatList
-        data={EXERCISES}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.list}
-      />
-    </SafeAreaView>
+    <View style={styles.container}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>FORM LIBRARY</Text>
+          <Text style={styles.headerSubtitle}>
+            Corrective drills mapped to your asymmetries
+          </Text>
+        </View>
+
+        <FlatList
+          data={EXERCISES}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+        />
+      </SafeAreaView>
+    </View>
   );
 };
 
@@ -36,46 +106,108 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
+  header: {
+    paddingHorizontal: SPACING.m,
+    paddingTop: SPACING.s,
+    paddingBottom: SPACING.m,
+  },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '900',
     color: COLORS.text,
-    margin: SPACING.m,
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
   },
   list: {
     padding: SPACING.m,
+    paddingTop: 0,
   },
   card: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.l,
     marginBottom: SPACING.m,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.card,
   },
   thumbnail: {
-    width: 100,
-    height: 100,
-    backgroundColor: COLORS.lightGray,
+    width: '100%',
+    height: 140,
+    backgroundColor: COLORS.surfaceLight,
   },
-  cardContent: {
-    flex: 1,
+  thumbnailOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 140,
+  },
+  cardBody: {
     padding: SPACING.m,
-    justifyContent: 'center',
+  },
+  cardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.s,
+  },
+  targetBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.accentGlow,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.s,
+  },
+  targetText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.accent,
+    letterSpacing: 1,
+  },
+  diffBadge: {
+    paddingHorizontal: SPACING.s,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.s,
+  },
+  diffText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   title: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '800',
     color: COLORS.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.gray,
+  category: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.m,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    paddingTop: SPACING.m,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  metaText: {
+    color: COLORS.textTertiary,
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
 

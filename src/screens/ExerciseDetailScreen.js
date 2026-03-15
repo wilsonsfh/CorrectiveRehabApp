@@ -1,16 +1,37 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { COLORS, SPACING } from '../constants/theme';
-import { ChevronLeft, Clock, BarChart } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, SPACING, RADIUS } from '../constants/theme';
+import {
+  ChevronLeft,
+  Clock,
+  BarChart,
+  Crosshair,
+  CheckCircle,
+  Zap,
+} from 'lucide-react-native';
+
+const DIFFICULTY_COLORS = {
+  Beginner: COLORS.success,
+  Intermediate: COLORS.accent,
+  Advanced: COLORS.danger,
+};
 
 const ExerciseDetailScreen = ({ route, navigation }) => {
   const { exercise } = route.params;
-  
-  const player = useVideoPlayer(exercise.videoUrl, player => {
+
+  const player = useVideoPlayer(exercise.videoUrl, (player) => {
     player.loop = true;
   });
+
+  const diffColor = DIFFICULTY_COLORS[exercise.difficulty] || COLORS.primary;
 
   return (
     <View style={styles.container}>
@@ -24,42 +45,83 @@ const ExerciseDetailScreen = ({ route, navigation }) => {
           allowsFullscreen
           allowsPictureInPicture
         />
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <ChevronLeft color={COLORS.white} size={32} />
+          <ChevronLeft color={COLORS.white} size={28} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.headerRow}>
+          {exercise.targetIssue && (
+            <View style={styles.targetBadge}>
+              <Crosshair color={COLORS.accent} size={12} />
+              <Text style={styles.targetText}>
+                FIXES: {exercise.targetIssue.toUpperCase()}
+              </Text>
+            </View>
+          )}
+        </View>
+
         <Text style={styles.title}>{exercise.title}</Text>
-        
+
+        {/* Meta row */}
         <View style={styles.metaRow}>
           <View style={styles.metaItem}>
-            <Clock color={COLORS.gray} size={16} />
+            <Clock color={COLORS.textTertiary} size={15} />
             <Text style={styles.metaText}>{exercise.duration}</Text>
           </View>
+          <View style={styles.metaDot} />
           <View style={styles.metaItem}>
-            <BarChart color={COLORS.gray} size={16} />
-            <Text style={styles.metaText}>{exercise.difficulty}</Text>
+            <BarChart color={COLORS.textTertiary} size={15} />
+            <Text style={[styles.metaText, { color: diffColor }]}>
+              {exercise.difficulty}
+            </Text>
+          </View>
+          <View style={styles.metaDot} />
+          <View style={styles.metaItem}>
+            <Zap color={COLORS.textTertiary} size={15} />
+            <Text style={styles.metaText}>{exercise.category}</Text>
           </View>
         </View>
 
+        {/* Category tag */}
         <View style={styles.tagContainer}>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>{exercise.category.toUpperCase()}</Text>
+            <Text style={styles.tagText}>
+              {exercise.category.toUpperCase()}
+            </Text>
           </View>
         </View>
 
+        {/* Instructions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Instructions</Text>
-          <Text style={styles.description}>{exercise.description}</Text>
+          <Text style={styles.sectionLabel}>INSTRUCTIONS</Text>
+          <View style={styles.instructionCard}>
+            <Text style={styles.description}>{exercise.description}</Text>
+          </View>
         </View>
 
-        <TouchableOpacity style={styles.completeBtn}>
-          <Text style={styles.completeBtnText}>Mark as Complete</Text>
+        {/* Complete button */}
+        <TouchableOpacity style={styles.completeBtn} activeOpacity={0.8}>
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.primaryDim]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.completeBtnGradient}
+          >
+            <CheckCircle color={COLORS.background} size={20} />
+            <Text style={styles.completeBtnText}>Mark as Complete</Text>
+          </LinearGradient>
         </TouchableOpacity>
+
+        <View style={{ height: SPACING.xl }} />
       </ScrollView>
     </View>
   );
@@ -72,8 +134,8 @@ const styles = StyleSheet.create({
   },
   videoContainer: {
     width: '100%',
-    height: 250,
-    backgroundColor: 'black',
+    height: 260,
+    backgroundColor: '#000',
   },
   video: {
     alignSelf: 'center',
@@ -82,76 +144,124 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 40,
-    left: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    borderRadius: 20,
-    padding: 4,
+    top: 48,
+    left: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: RADIUS.full,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
     padding: SPACING.m,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.text,
+  headerRow: {
+    flexDirection: 'row',
     marginBottom: SPACING.s,
+  },
+  targetBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.accentGlow,
+    paddingHorizontal: SPACING.s,
+    paddingVertical: SPACING.xs,
+    borderRadius: RADIUS.s,
+  },
+  targetText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.accent,
+    letterSpacing: 1,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: COLORS.text,
+    marginBottom: SPACING.m,
+    letterSpacing: -0.5,
   },
   metaRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: SPACING.m,
-    gap: SPACING.l,
+    gap: SPACING.s,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs,
+    gap: 4,
+  },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: COLORS.textTertiary,
   },
   metaText: {
-    color: COLORS.gray,
-    fontSize: 14,
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    fontWeight: '500',
   },
   tagContainer: {
     flexDirection: 'row',
     marginBottom: SPACING.l,
   },
   tag: {
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.surfaceLight,
     paddingHorizontal: SPACING.m,
     paddingVertical: SPACING.s,
-    borderRadius: 8,
+    borderRadius: RADIUS.s,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   tagText: {
-    color: COLORS.secondary,
-    fontWeight: '600',
-    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '700',
+    fontSize: 11,
+    letterSpacing: 1,
   },
   section: {
-    marginBottom: SPACING.xl,
+    marginBottom: SPACING.l,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.text,
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.textTertiary,
+    letterSpacing: 1.5,
     marginBottom: SPACING.s,
   },
+  instructionCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.m,
+    padding: SPACING.m,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
   description: {
-    fontSize: 16,
-    color: COLORS.text,
+    fontSize: 15,
+    color: COLORS.textSecondary,
     lineHeight: 24,
   },
   completeBtn: {
-    backgroundColor: COLORS.primary,
-    padding: SPACING.m,
-    borderRadius: 12,
-    alignItems: 'center',
+    borderRadius: RADIUS.m,
+    overflow: 'hidden',
     marginBottom: SPACING.l,
   },
+  completeBtnGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: SPACING.s,
+  },
   completeBtnText: {
-    color: COLORS.white,
-    fontWeight: 'bold',
+    color: COLORS.background,
+    fontWeight: '800',
     fontSize: 16,
+    letterSpacing: 0.5,
   },
 });
 

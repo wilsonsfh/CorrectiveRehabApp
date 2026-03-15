@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Library, Activity, User } from 'lucide-react-native';
@@ -22,49 +22,75 @@ const LibraryStack = () => (
 
 const ProfileScreen = () => <PlaceholderScreen name="Profile" />;
 
+const DARK_THEME = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: COLORS.primary,
+    background: COLORS.background,
+    card: COLORS.surface,
+    text: COLORS.text,
+    border: COLORS.border,
+    notification: COLORS.accent,
+  },
+};
+
 export default function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={DARK_THEME}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
           tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: COLORS.gray,
+          tabBarInactiveTintColor: COLORS.textTertiary,
           tabBarStyle: {
-            borderTopWidth: 0,
-            elevation: 0,
-            backgroundColor: COLORS.white,
-            height: 60,
+            backgroundColor: COLORS.surface,
+            borderTopWidth: 1,
+            borderTopColor: COLORS.border,
+            height: 64,
             paddingBottom: 8,
+            paddingTop: 4,
+          },
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: '600',
           },
         }}
       >
-        <Tab.Screen 
-          name="Home" 
-          component={HomeScreen} 
+        <Tab.Screen
+          name="Home"
+          component={HomeScreen}
           options={{
-            tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
+            tabBarIcon: ({ color, size }) => (
+              <Home color={color} size={size} />
+            ),
           }}
         />
-        <Tab.Screen 
-          name="Library" 
-          component={LibraryStack} 
+        <Tab.Screen
+          name="Library"
+          component={LibraryStack}
           options={{
-            tabBarIcon: ({ color, size }) => <Library color={color} size={size} />,
+            tabBarIcon: ({ color, size }) => (
+              <Library color={color} size={size} />
+            ),
           }}
         />
-        <Tab.Screen 
-          name="Log" 
-          component={LogScreen} 
+        <Tab.Screen
+          name="Log"
+          component={LogScreen}
           options={{
-            tabBarIcon: ({ color, size }) => <Activity color={color} size={size} />,
+            tabBarIcon: ({ color, size }) => (
+              <Activity color={color} size={size} />
+            ),
           }}
         />
-        <Tab.Screen 
-          name="Profile" 
-          component={ProfileScreen} 
+        <Tab.Screen
+          name="Profile"
+          component={ProfileScreen}
           options={{
-            tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+            tabBarIcon: ({ color, size }) => (
+              <User color={color} size={size} />
+            ),
           }}
         />
       </Tab.Navigator>
