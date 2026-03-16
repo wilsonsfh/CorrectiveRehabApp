@@ -49,6 +49,7 @@ export async function analyzeVideo(video, userId, sessionId) {
     angle: video.angle,
     symmetry_score: serverResult.symmetry_score,
     issues: serverResult.issues,
+    keypoints: serverResult.keypoints ?? null,
   });
 
   if (error) throw error;
@@ -57,6 +58,8 @@ export async function analyzeVideo(video, userId, sessionId) {
     angle: video.angle,
     symmetry_score: serverResult.symmetry_score,
     issues: serverResult.issues,
+    keypoints: serverResult.keypoints ?? [],
+    storagePath: video.storage_path,
   };
 }
 

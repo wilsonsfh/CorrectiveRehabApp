@@ -1,9 +1,14 @@
 #!/bin/bash
 set -e
 
+# Load secrets from .env.deploy if it exists (gitignored)
+if [ -f "$(dirname "$0")/.env.deploy" ]; then
+  source "$(dirname "$0")/.env.deploy"
+fi
+
 if [ -z "$SUPABASE_SERVICE_KEY" ]; then
-  echo "Error: SUPABASE_SERVICE_KEY env var is not set"
-  echo "Usage: SUPABASE_SERVICE_KEY=your-key ./deploy.sh"
+  echo "Error: SUPABASE_SERVICE_KEY is not set."
+  echo "Create server/.env.deploy with: SUPABASE_SERVICE_KEY=your-key"
   exit 1
 fi
 

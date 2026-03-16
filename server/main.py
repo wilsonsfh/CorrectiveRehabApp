@@ -38,9 +38,23 @@ class Issue(BaseModel):
     measurement: float | None = None
 
 
+class Landmark(BaseModel):
+    x: float
+    y: float
+    z: float
+    visibility: float
+
+
+class Keyframe(BaseModel):
+    frame_index: int
+    timestamp_ms: int
+    landmarks: list[Landmark]
+
+
 class AnalyzeResponse(BaseModel):
     symmetry_score: int
     issues: list[Issue]
+    keypoints: list[Keyframe] = []
 
 
 @app.get("/health")

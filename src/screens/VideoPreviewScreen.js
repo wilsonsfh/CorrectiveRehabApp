@@ -9,6 +9,7 @@ import { COLORS, SPACING, RADIUS } from '../constants/theme';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { RotateCcw, CheckCircle, ChevronRight } from 'lucide-react-native';
+import { StatusBar } from 'expo-status-bar';
 
 export default function VideoPreviewScreen({ navigation, route }) {
   const { videoUri, category, angleIndex, currentAngle, sessionId, recordedAngles } = route.params;
@@ -98,6 +99,7 @@ export default function VideoPreviewScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
+      <StatusBar hidden />
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}

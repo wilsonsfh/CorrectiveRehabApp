@@ -37,18 +37,41 @@ A gym-specific biomechanical audit tool that catches invisible form breaks, trac
 - Prompted recording: "Film from SIDE for bar path" → "Film from FRONT for symmetry"
 - Video saved locally + uploaded to Supabase Storage
 
-## Phase 4 — AI Pose Estimation & Form Scoring
-- **On-device (primary)**: MediaPipe via react-native-vision-camera frame processor — free, offline, real-time skeleton overlay
-- **Server-side (deep audit)**: Recorded video upload → OpenPose/skeleton extraction → classification scores
+## Phase 4a — Server-Side Pose Estimation & Form Scoring *(COMPLETE)*
+- FastAPI + MediaPipe server on Google Cloud Run
+- POST /analyze: video → MediaPipe Pose → symmetry_score + detected issues
 - Joint angle calculation (knee, hip, shoulder)
 - Symmetry score: left vs right comparison
-- Auto-detection: butt wink, knee cave, bar drift, hip shift
+- Auto-detection: butt wink, knee cave, bar drift, hip shift, shoulder shrug, bar rotation
+- SessionResultScreen: per-angle score breakdown with issue severity badges
+- HomeScreen: real aggregate symmetry score from analysis_results table
 
-## Phase 5 — Dashboard & Progress Tracking
-- Symmetry Score trending over time (charts)
-- Side-by-side video comparison (Week 1 vs Week 4)
+## Phase 4b — Skeleton Overlay + Frame Stepper
+- Server returns raw keypoints (33 MediaPipe landmarks per frame) alongside scores
+- Store keypoints in `analysis_results.keypoints` (column exists, currently null)
+- SessionResultScreen: skeleton thumbnail overlay on each angle card (worst frame)
+- New `SkeletonViewerScreen`: full-screen frame stepper (~15 analyzed keyframes)
+- `SkeletonOverlay` component: reusable SVG skeleton renderer (react-native-svg)
+- Issue-aware coloring: teal (normal), orange (moderate), red (severe) on affected joints/segments
+- Optional "Show Measurements" toggle for angle values at joints
+- New deps: `react-native-svg`, `expo-video-thumbnails`
+- Design doc: `docs/plans/2026-03-16-phase4bc-design.md`
+
+## Phase 4c — Side-by-Side Session Comparison
+- "Compare to Previous" button on SessionResultScreen (auto-selects most recent prior session for same lift)
+- New `CompareSessionScreen`: stacked worst-frame comparison with skeleton overlays
+- Score delta display (e.g., "68 → 75, +7")
+- Issue diff: improved, regressed, new, resolved
+- Independent frame stepper per side
+- Design doc: `docs/plans/2026-03-16-phase4bc-design.md`
+
+## Phase 5 — Dashboard, Progress Tracking & History
+- Full session history screen with arbitrary session comparison picker (extends 4c)
+- Symmetry Score trending over time (line charts per lift)
 - Habit correlation: "Days you sat >4h, squat symmetry dropped 12%"
-- Progressive form score per lift
+- Progressive form score per lift (chart)
+- Smooth video playback with interpolated skeleton (upgrade from 4b frame stepper)
+- On-device ML for instant offline preview (if server latency is a pain point)
 
 ## Phase 6 — Exercise Library Revamp
 - Corrective drills mapped to detected issues

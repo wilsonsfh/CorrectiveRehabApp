@@ -296,40 +296,65 @@ ANGLE_ANALYZERS = {
 
 
 def _extract_keyframes(video_path: str, max_frames: int = 15):
-    """Extract evenly-spaced frames from a video file."""
+    """Extract evenly-spaced frames from a video file. Returns (frames, timestamps_ms)."""
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     if total_frames <= 0:
         cap.release()
         raise ValueError("Could not read video frames")
 
     step = max(1, total_frames // max_frames)
     frames = []
+    timestamps_ms = []
     for i in range(0, total_frames, step):
         cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         ret, frame = cap.read()
         if ret:
             frames.append(frame)
+            timestamps_ms.append(round(i / fps * 1000))
         if len(frames) >= max_frames:
             break
     cap.release()
-    return frames
+    return frames, timestamps_ms
 
 
 def _run_pose_estimation(frames):
-    """Run MediaPipe Pose on a list of frames, return list of landmark sets."""
+    """Run MediaPipe Pose on a list of frames, return (landmark sets, valid frame indices)."""
     landmarks_list = []
+    valid_indices = []
     with mp_pose.Pose(
         static_image_mode=True,
         model_complexity=2,
         min_detection_confidence=0.5,
     ) as pose:
-        for frame in frames:
+        for i, frame in enumerate(frames):
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             results = pose.process(rgb)
             if results.pose_landmarks:
                 landmarks_list.append(results.pose_landmarks.landmark)
-    return landmarks_list
+                valid_indices.append(i)
+    return landmarks_list, valid_indices
+
+
+def _serialize_landmarks(landmarks_list, valid_indices, timestamps_ms):
+    """Convert MediaPipe landmarks to JSON-serializable keypoints array."""
+    keypoints = []
+    for landmarks, idx in zip(landmarks_list, valid_indices):
+        frame_landmarks = []
+        for lm in landmarks:
+            frame_landmarks.append({
+                "x": round(lm.x, 4),
+                "y": round(lm.y, 4),
+                "z": round(lm.z, 4),
+                "visibility": round(lm.visibility, 3),
+            })
+        keypoints.append({
+            "frame_index": idx,
+            "timestamp_ms": timestamps_ms[idx] if idx < len(timestamps_ms) else 0,
+            "landmarks": frame_landmarks,
+        })
+    return keypoints
 
 
 def _compute_score(issues):
@@ -388,17 +413,18 @@ async def analyze_video_from_storage(
     remuxed_path = _remux_video(video_path)
 
     try:
-        frames = _extract_keyframes(remuxed_path)
-        landmarks_list = _run_pose_estimation(frames)
+        frames, timestamps_ms = _extract_keyframes(remuxed_path)
+        landmarks_list, valid_indices = _run_pose_estimation(frames)
 
         if not landmarks_list:
-            return {"symmetry_score": 100, "issues": []}
+            return {"symmetry_score": 100, "issues": [], "keypoints": []}
 
         analyzer = ANGLE_ANALYZERS.get(angle, _analyze_side)
         issues = analyzer(landmarks_list)
         score = _compute_score(issues)
+        keypoints = _serialize_landmarks(landmarks_list, valid_indices, timestamps_ms)
 
-        return {"symmetry_score": score, "issues": issues}
+        return {"symmetry_score": score, "issues": issues, "keypoints": keypoints}
     finally:
         Path(video_path).unlink(missing_ok=True)
         if remuxed_path != video_path:

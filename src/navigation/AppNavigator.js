@@ -13,6 +13,8 @@ import RecordVideoScreen from '../screens/RecordVideoScreen';
 import VideoPreviewScreen from '../screens/VideoPreviewScreen';
 import LinkSessionScreen from '../screens/LinkSessionScreen';
 import SessionResultScreen from '../screens/SessionResultScreen';
+import SkeletonViewerScreen from '../screens/SkeletonViewerScreen';
+import CompareSessionScreen from '../screens/CompareSessionScreen';
 import { COLORS } from '../constants/theme';
 import { linking } from '../lib/linking';
 
@@ -115,6 +117,16 @@ export default function AppNavigator({ navigationRef }) {
         <RootStack.Screen
           name="SessionResult"
           component={SessionResultScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <RootStack.Screen
+          name="SkeletonViewer"
+          component={SkeletonViewerScreen}
+          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+        />
+        <RootStack.Screen
+          name="CompareSession"
+          component={CompareSessionScreen}
           options={{ presentation: 'modal' }}
         />
       </RootStack.Navigator>

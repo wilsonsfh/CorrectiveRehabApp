@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { COLORS, SPACING, RADIUS } from '../constants/theme';
 import { GYM_HABITS } from '../data/mockData';
+import { supabase } from '../lib/supabase';
+import SkeletonOverlay from '../components/SkeletonOverlay';
 import {
-  CheckCircle, AlertTriangle, ChevronRight, X,
+  CheckCircle, AlertTriangle, ChevronRight, X, Eye, GitCompare,
 } from 'lucide-react-native';
+import { useAuth } from '../contexts/AuthContext';
 
 const SEVERITY_COLORS = {
   mild: COLORS.success,
@@ -16,9 +20,142 @@ const SEVERITY_COLORS = {
   severe: COLORS.accent,
 };
 
+const THUMB_WIDTH = 100;
+const THUMB_HEIGHT = 133; // 4:3 aspect
+
+function AngleThumbnail({ keypoints, issues, storagePath }) {
+  const [thumbUri, setThumbUri] = useState(null);
+
+  useEffect(() => {
+    if (!storagePath || !keypoints?.length) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Pick the middle frame for the thumbnail
+        const midIdx = Math.floor(keypoints.length / 2);
+        const timestampMs = keypoints[midIdx]?.timestamp_ms ?? 0;
+
+        const { data } = await supabase.storage
+          .from('session-videos')
+          .createSignedUrl(storagePath, 3600);
+
+        if (cancelled || !data?.signedUrl) return;
+
+        const { uri } = await VideoThumbnails.getThumbnailAsync(data.signedUrl, {
+          time: timestampMs,
+          quality: 0.6,
+        });
+        if (!cancelled) setThumbUri(uri);
+      } catch (e) {
+        console.warn('Thumbnail extraction failed:', e.message);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [storagePath, keypoints]);
+
+  // Pick the middle frame's landmarks for the thumbnail skeleton
+  const midFrame = keypoints?.[Math.floor((keypoints?.length ?? 0) / 2)];
+
+  return (
+    <View style={styles.thumbContainer}>
+      {thumbUri ? (
+        <Image
+          source={{ uri: thumbUri }}
+          style={styles.thumbImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.thumbImage, styles.thumbPlaceholder]}>
+          <Eye color={COLORS.textTertiary} size={20} />
+        </View>
+      )}
+      {midFrame?.landmarks && (
+        <View style={StyleSheet.absoluteFill}>
+          <SkeletonOverlay
+            landmarks={midFrame.landmarks}
+            issues={issues}
+            width={THUMB_WIDTH}
+            height={THUMB_HEIGHT}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
+
 export default function SessionResultScreen({ navigation, route }) {
   const { sessionId, category, analysisResults } = route.params;
+  const { user } = useAuth();
   const results = analysisResults ?? [];
+  const [previousSession, setPreviousSession] = useState(null);
+
+  // Check for a previous analyzed session with the same lift category
+  useEffect(() => {
+    if (!user?.id || !category?.id || !sessionId) return;
+    (async () => {
+      try {
+        // Find the most recent completed session for the same category that isn't the current one
+        const { data: prevSessions } = await supabase
+          .from('gym_sessions')
+          .select('id, date, category_label')
+          .eq('user_id', user.id)
+          .eq('category_id', category.id)
+          .eq('analysis_status', 'complete')
+          .neq('id', sessionId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (!prevSessions?.length) return;
+
+        const prevSession = prevSessions[0];
+
+        // Fetch its analysis results with keypoints
+        const { data: prevResults } = await supabase
+          .from('analysis_results')
+          .select('angle, symmetry_score, issues, keypoints')
+          .eq('session_id', prevSession.id);
+
+        if (!prevResults?.length) return;
+
+        // Fetch storage paths for the previous session's videos
+        const { data: prevVideos } = await supabase
+          .from('session_videos')
+          .select('angle, storage_path')
+          .eq('session_id', prevSession.id);
+
+        const videoMap = {};
+        for (const v of prevVideos ?? []) {
+          videoMap[v.angle] = v.storage_path;
+        }
+
+        const enrichedResults = prevResults.map(r => ({
+          ...r,
+          storagePath: videoMap[r.angle] ?? null,
+        }));
+
+        setPreviousSession({
+          id: prevSession.id,
+          date: prevSession.date,
+          results: enrichedResults,
+        });
+      } catch (e) {
+        console.warn('Failed to fetch previous session:', e.message);
+      }
+    })();
+  }, [user?.id, category?.id, sessionId]);
+
+  const handleCompare = () => {
+    if (!previousSession) return;
+    navigation.navigate('CompareSession', {
+      currentResults: results,
+      previousResults: previousSession.results,
+      currentDate: new Date().toISOString(),
+      previousDate: previousSession.date,
+      categoryLabel: category?.label ?? 'Session',
+    });
+  };
 
   const overallScore = results.length > 0
     ? Math.round(results.reduce((sum, r) => sum + r.symmetry_score, 0) / results.length)
@@ -36,6 +173,19 @@ export default function SessionResultScreen({ navigation, route }) {
       navigation.navigate('Library');
     }
   };
+
+  const handleAnglePress = (result) => {
+    if (!result.keypoints?.length) return;
+    navigation.navigate('SkeletonViewer', {
+      angle: result.angle,
+      keypoints: result.keypoints,
+      issues: result.issues,
+      symmetryScore: result.symmetry_score,
+      storagePath: result.storagePath,
+    });
+  };
+
+  const hasKeypoints = (result) => result.keypoints?.length > 0;
 
   return (
     <View style={styles.container}>
@@ -86,26 +236,74 @@ export default function SessionResultScreen({ navigation, route }) {
             </View>
           )}
 
-          {/* Per-angle cards */}
-          {results.map((result) => (
-            <View key={result.angle} style={styles.angleCard}>
-              <View style={styles.angleHeader}>
-                <View style={styles.angleBadge}>
-                  <Text style={styles.angleBadgeText}>{result.angle.toUpperCase()}</Text>
-                </View>
-                <Text style={[styles.angleScore, { color: getScoreColor(result.symmetry_score) }]}>
-                  {result.symmetry_score}/100
+          {/* Compare to Previous */}
+          {previousSession && (
+            <TouchableOpacity
+              style={styles.compareBtn}
+              onPress={handleCompare}
+              activeOpacity={0.7}
+            >
+              <GitCompare color={COLORS.primary} size={18} />
+              <View style={styles.compareBtnInfo}>
+                <Text style={styles.compareBtnText}>Compare to Previous</Text>
+                <Text style={styles.compareBtnSub}>
+                  {new Date(previousSession.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {' — '}
+                  {Math.round(previousSession.results.reduce((s, r) => s + r.symmetry_score, 0) / previousSession.results.length)}/100
                 </Text>
               </View>
+              <ChevronRight color={COLORS.primary} size={18} />
+            </TouchableOpacity>
+          )}
 
-              {/* Score bar */}
-              <View style={styles.angleBarBg}>
-                <LinearGradient
-                  colors={[COLORS.accent, getScoreColor(result.symmetry_score)]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.angleBarFill, { width: `${result.symmetry_score}%` }]}
-                />
+          {/* Per-angle cards */}
+          {results.map((result) => (
+            <TouchableOpacity
+              key={result.angle}
+              style={styles.angleCard}
+              activeOpacity={hasKeypoints(result) ? 0.7 : 1}
+              onPress={() => handleAnglePress(result)}
+              disabled={!hasKeypoints(result)}
+            >
+              <View style={styles.angleTopRow}>
+                {/* Skeleton thumbnail */}
+                {hasKeypoints(result) && (
+                  <AngleThumbnail
+                    keypoints={result.keypoints}
+                    issues={result.issues}
+                    storagePath={result.storagePath}
+                  />
+                )}
+
+                {/* Score + info */}
+                <View style={styles.angleInfoCol}>
+                  <View style={styles.angleHeader}>
+                    <View style={styles.angleBadge}>
+                      <Text style={styles.angleBadgeText}>{result.angle.toUpperCase()}</Text>
+                    </View>
+                    <Text style={[styles.angleScore, { color: getScoreColor(result.symmetry_score) }]}>
+                      {result.symmetry_score}/100
+                    </Text>
+                  </View>
+
+                  {/* Score bar */}
+                  <View style={styles.angleBarBg}>
+                    <LinearGradient
+                      colors={[COLORS.accent, getScoreColor(result.symmetry_score)]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[styles.angleBarFill, { width: `${result.symmetry_score}%` }]}
+                    />
+                  </View>
+
+                  {/* Tap hint */}
+                  {hasKeypoints(result) && (
+                    <View style={styles.tapHint}>
+                      <Eye color={COLORS.textTertiary} size={12} />
+                      <Text style={styles.tapHintText}>Tap to view skeleton</Text>
+                    </View>
+                  )}
+                </View>
               </View>
 
               {/* Issues */}
@@ -144,7 +342,7 @@ export default function SessionResultScreen({ navigation, route }) {
                   </View>
                 ))
               )}
-            </View>
+            </TouchableOpacity>
           ))}
 
           <View style={{ height: SPACING.xl }} />
@@ -213,12 +411,27 @@ const styles = StyleSheet.create({
   },
   emptyText: { color: COLORS.textTertiary, fontSize: 15 },
 
+  // Compare button
+  compareBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.m,
+    backgroundColor: COLORS.primaryGlow, borderRadius: RADIUS.m,
+    padding: SPACING.m, marginBottom: SPACING.l,
+    borderWidth: 1, borderColor: COLORS.primary + '40',
+  },
+  compareBtnInfo: { flex: 1 },
+  compareBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.primary },
+  compareBtnSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+
   // Angle cards
   angleCard: {
     backgroundColor: COLORS.surface, borderRadius: RADIUS.l,
     padding: SPACING.m, borderWidth: 1, borderColor: COLORS.border,
     marginBottom: SPACING.m,
   },
+  angleTopRow: {
+    flexDirection: 'row', gap: SPACING.m, marginBottom: SPACING.m,
+  },
+  angleInfoCol: { flex: 1 },
   angleHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: SPACING.m,
@@ -231,9 +444,29 @@ const styles = StyleSheet.create({
   angleScore: { fontSize: 20, fontWeight: '900' },
   angleBarBg: {
     height: 6, backgroundColor: COLORS.background, borderRadius: 3,
-    overflow: 'hidden', marginBottom: SPACING.m,
+    overflow: 'hidden', marginBottom: SPACING.s,
   },
   angleBarFill: { height: '100%', borderRadius: 3 },
+
+  tapHint: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+  },
+  tapHintText: { fontSize: 11, color: COLORS.textTertiary, fontWeight: '500' },
+
+  // Thumbnail
+  thumbContainer: {
+    width: THUMB_WIDTH, height: THUMB_HEIGHT,
+    borderRadius: RADIUS.m, overflow: 'hidden',
+    backgroundColor: COLORS.background,
+    borderWidth: 1, borderColor: COLORS.border,
+  },
+  thumbImage: {
+    width: THUMB_WIDTH, height: THUMB_HEIGHT,
+    borderRadius: RADIUS.m,
+  },
+  thumbPlaceholder: {
+    backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center',
+  },
 
   // Issues
   noIssues: {

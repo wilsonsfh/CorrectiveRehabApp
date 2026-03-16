@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Dimensions,
+  View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { COLORS, SPACING, RADIUS } from '../constants/theme';
 import { ChevronLeft, RotateCcw } from 'lucide-react-native';
 
@@ -47,17 +48,30 @@ export default function RecordVideoScreen({ navigation, route }) {
   }
 
   const startRecording = async () => {
-    if (!cameraRef.current || recording) return;
+    if (recording) return;
+    if (!cameraRef.current) {
+      Alert.alert('Camera not ready', 'Please wait a moment and try again.');
+      return;
+    }
     setRecording(true);
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
     try {
       const video = await cameraRef.current.recordAsync({ maxDuration: 120 });
-      handleRecordingDone(video.uri);
+      if (video?.uri) {
+        handleRecordingDone(video.uri);
+      } else {
+        throw new Error('No video URI returned');
+      }
     } catch (e) {
-      setRecording(false);
+      // stopRecording() throws a benign error — ignore it
+      if (!e.message?.includes('stop') && !e.message?.includes('cancel')) {
+        Alert.alert('Recording failed', e.message);
+      }
+    } finally {
       clearInterval(timerRef.current);
+      setRecording(false);
     }
   };
 
@@ -83,6 +97,7 @@ export default function RecordVideoScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
+      <StatusBar hidden />
       <CameraView
         ref={cameraRef}
         style={StyleSheet.absoluteFill}
@@ -90,8 +105,9 @@ export default function RecordVideoScreen({ navigation, route }) {
         mode="video"
       />
 
-      <SafeAreaView style={styles.overlay}>
-        {/* TOP BAR */}
+      {/* edges={['bottom']} — only bottom safe area, camera goes edge-to-edge */}
+      <SafeAreaView style={styles.overlay} edges={['bottom']}>
+        {/* TOP BAR — manual padding since status bar is hidden */}
         <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.iconBtn}
@@ -153,7 +169,7 @@ const styles = StyleSheet.create({
 
   topBar: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: SPACING.m, paddingTop: SPACING.s,
+    paddingHorizontal: SPACING.m, paddingTop: SPACING.xl,
   },
   iconBtn: {
     width: 40, height: 40, borderRadius: RADIUS.full,
