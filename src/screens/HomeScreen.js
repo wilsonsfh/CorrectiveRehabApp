@@ -38,6 +38,7 @@ const HomeScreen = ({ navigation }) => {
   const [stats, setStats] = useState({ logs: 0, activeIssues: 0, sessions: 0 });
   const [loadingData, setLoadingData] = useState(true);
   const [draftSession, setDraftSession] = useState(null);
+  const [symmetryData, setSymmetryData] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -49,7 +50,7 @@ const HomeScreen = ({ navigation }) => {
   async function fetchData() {
     setLoadingData(true);
 
-    const [recentRes, logsCountRes, issuesRes, sessionsCountRes, draftRes] = await Promise.all([
+    const [recentRes, logsCountRes, issuesRes, sessionsCountRes, draftRes, analysisRes] = await Promise.all([
       supabase
         .from('habit_logs')
         .select('*')
@@ -77,6 +78,12 @@ const HomeScreen = ({ navigation }) => {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      supabase
+        .from('analysis_results')
+        .select('symmetry_score, session_id, processed_at')
+        .eq('user_id', user.id)
+        .order('processed_at', { ascending: false })
+        .limit(10),
     ]);
 
     setRecentLog(recentRes.data ?? null);
@@ -89,6 +96,19 @@ const HomeScreen = ({ navigation }) => {
       activeIssues: uniqueIssues.size,
       sessions: sessionsCountRes.count ?? 0,
     });
+
+    // Compute symmetry score from latest session's results
+    const analysisRows = analysisRes.data ?? [];
+    if (analysisRows.length > 0) {
+      const latestSessionId = analysisRows[0].session_id;
+      const latestResults = analysisRows.filter(r => r.session_id === latestSessionId);
+      const avgScore = Math.round(
+        latestResults.reduce((sum, r) => sum + r.symmetry_score, 0) / latestResults.length
+      );
+      setSymmetryData({ score: avgScore, results: latestResults });
+    } else {
+      setSymmetryData(null);
+    }
 
     setLoadingData(false);
   }
@@ -208,7 +228,7 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
 
-          {/* ─── SYMMETRY SCORE (placeholder) ─── */}
+          {/* ─── SYMMETRY SCORE ─── */}
           <View style={styles.scoreCard}>
             <LinearGradient
               colors={['rgba(0, 229, 204, 0.08)', 'rgba(0, 229, 204, 0.02)']}
@@ -216,26 +236,32 @@ const HomeScreen = ({ navigation }) => {
             >
               <View style={styles.scoreHeader}>
                 <Text style={styles.scoreLabel}>SYMMETRY SCORE</Text>
-                <View style={styles.scoreTrend}>
-                  <TrendingUp color={COLORS.success} size={14} />
-                  <Text style={styles.scoreTrendText}>+3%</Text>
-                </View>
               </View>
               <View style={styles.scoreRow}>
-                <Text style={styles.scoreValue}>74</Text>
-                <Text style={styles.scoreUnit}>/100</Text>
+                <Text style={styles.scoreValue}>
+                  {symmetryData?.score ?? '\u2014'}
+                </Text>
+                {symmetryData && <Text style={styles.scoreUnit}>/100</Text>}
                 <View style={styles.scoreBarContainer}>
-                  <View style={styles.scoreBarBg}>
-                    <LinearGradient
-                      colors={[COLORS.accent, COLORS.primary]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={[styles.scoreBarFill, { width: '74%' }]}
-                    />
-                  </View>
-                  <Text style={styles.scoreBarLabel}>
-                    Target: 85+
-                  </Text>
+                  {symmetryData ? (
+                    <>
+                      <View style={styles.scoreBarBg}>
+                        <LinearGradient
+                          colors={[COLORS.accent, COLORS.primary]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={[styles.scoreBarFill, { width: `${symmetryData.score}%` }]}
+                        />
+                      </View>
+                      <Text style={styles.scoreBarLabel}>
+                        Target: 85+
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.scoreBarLabel}>
+                      Record a set to get your score
+                    </Text>
+                  )}
                 </View>
               </View>
             </LinearGradient>

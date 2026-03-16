@@ -112,3 +112,30 @@ create policy "Users own session_videos" on public.session_videos
 -- ─── INDEXES ───
 create index idx_habit_logs_user_date on public.habit_logs(user_id, date desc);
 create index idx_workout_sessions_user on public.workout_sessions(user_id, completed_at desc);
+
+-- ─── PHASE 4a ADDITIONS ───
+
+create table public.analysis_results (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  session_id uuid references public.gym_sessions(id) on delete cascade not null,
+  video_id uuid references public.session_videos(id) on delete cascade,
+  angle text not null check (angle in ('side', 'front', 'above')),
+  symmetry_score int not null check (symmetry_score between 0 and 100),
+  issues jsonb not null default '[]',
+  keypoints jsonb,
+  processed_at timestamptz default now()
+);
+
+alter table public.analysis_results enable row level security; -- so users can only access their own data
+
+create policy "Users own analysis_results" on public.analysis_results
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index idx_analysis_results_session on public.analysis_results(session_id);
+create index idx_analysis_results_user on public.analysis_results(user_id, processed_at desc);
+
+-- Add analysis_status to gym_sessions
+alter table public.gym_sessions
+  add column if not exists analysis_status text default 'pending'
+    check (analysis_status in ('pending', 'analyzing', 'complete', 'failed'));

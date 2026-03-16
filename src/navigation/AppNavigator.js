@@ -12,6 +12,7 @@ import SessionSetupScreen from '../screens/SessionSetupScreen';
 import RecordVideoScreen from '../screens/RecordVideoScreen';
 import VideoPreviewScreen from '../screens/VideoPreviewScreen';
 import LinkSessionScreen from '../screens/LinkSessionScreen';
+import SessionResultScreen from '../screens/SessionResultScreen';
 import { COLORS } from '../constants/theme';
 import { linking } from '../lib/linking';
 
@@ -109,6 +110,11 @@ export default function AppNavigator({ navigationRef }) {
         <RootStack.Screen
           name="LinkSession"
           component={LinkSessionScreen}
+          options={{ presentation: 'modal' }}
+        />
+        <RootStack.Screen
+          name="SessionResult"
+          component={SessionResultScreen}
           options={{ presentation: 'modal' }}
         />
       </RootStack.Navigator>

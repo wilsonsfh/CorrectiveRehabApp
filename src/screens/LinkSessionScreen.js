@@ -10,6 +10,7 @@ import { GYM_HABITS } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { CheckCircle, Video, Calendar, ChevronRight } from 'lucide-react-native';
+import { analyzeSession } from '../lib/analysis';
 
 export default function LinkSessionScreen({ navigation, route }) {
   const { category, sessionId, recordedAngles } = route.params;
@@ -19,6 +20,7 @@ export default function LinkSessionScreen({ navigation, route }) {
   const [selectedHabits, setSelectedHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => { fetchTodaySessions(); }, []);
 
@@ -73,12 +75,34 @@ export default function LinkSessionScreen({ navigation, route }) {
       await supabase.from('habit_logs').insert(habitRows);
     }
 
+    // Run AI analysis
+    setAnalyzing(true);
     setSaving(false);
-    Alert.alert(
-      'Session Saved',
-      `${category.label} session recorded with ${recordedAngles.length} angle${recordedAngles.length > 1 ? 's' : ''}.`,
-      [{ text: 'Done', onPress: () => navigation.popToTop() }]
-    );
+
+    try {
+      const { results, hasFailure } = await analyzeSession(selectedSessionId, user.id);
+
+      if (hasFailure && results.length > 0) {
+        Alert.alert(
+          'Partial Analysis',
+          'Some angles could not be analyzed. Showing available results.',
+        );
+      }
+
+      navigation.navigate('SessionResult', {
+        sessionId: selectedSessionId,
+        category,
+        analysisResults: results,
+      });
+    } catch (err) {
+      Alert.alert(
+        'Analysis Failed',
+        'Session saved but analysis could not complete. You can view results later.',
+        [{ text: 'OK', onPress: () => navigation.popToTop() }],
+      );
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   return (
@@ -160,18 +184,23 @@ export default function LinkSessionScreen({ navigation, route }) {
 
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.confirmBtn, (!selectedSessionId || saving) && { opacity: 0.6 }]}
+            style={[styles.confirmBtn, (!selectedSessionId || saving || analyzing) && { opacity: 0.6 }]}
             onPress={handleConfirm}
             activeOpacity={0.8}
-            disabled={!selectedSessionId || saving}
+            disabled={!selectedSessionId || saving || analyzing}
           >
             <LinearGradient
               colors={[COLORS.primary, COLORS.primaryDim]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
               style={styles.confirmBtnGradient}
             >
-              {saving ? (
-                <ActivityIndicator color={COLORS.background} />
+              {saving || analyzing ? (
+                <>
+                  <ActivityIndicator color={COLORS.background} />
+                  <Text style={styles.confirmBtnText}>
+                    {analyzing ? 'Analyzing...' : 'Saving...'}
+                  </Text>
+                </>
               ) : (
                 <>
                   <CheckCircle color={COLORS.background} size={20} />

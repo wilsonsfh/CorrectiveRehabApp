@@ -47,11 +47,11 @@ export default function VideoPreviewScreen({ navigation, route }) {
     // Upload video to Supabase Storage
     const storagePath = `${user.id}/${currentSessionId}/${currentAngle.toLowerCase()}.mp4`;
     const response = await fetch(videoUri);
-    const blob = await response.blob();
+    const arrayBuffer = await response.arrayBuffer();
 
     const { error: uploadError } = await supabase.storage
       .from('session-videos')
-      .upload(storagePath, blob, { contentType: 'video/mp4', upsert: true });
+      .upload(storagePath, arrayBuffer, { contentType: 'video/mp4', upsert: true });
 
     if (uploadError) {
       setSaving(false);
