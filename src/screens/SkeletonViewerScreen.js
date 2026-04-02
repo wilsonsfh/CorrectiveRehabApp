@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Switch, ActivityIndicator,
+  View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Switch, ActivityIndicator, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as VideoThumbnails from 'expo-video-thumbnails';
@@ -50,8 +50,12 @@ export default function SkeletonViewerScreen({ navigation, route }) {
     })();
   }, [storagePath]);
 
-  // Extract thumbnails for all keyframes
+  // Extract thumbnails for all keyframes (native only)
   useEffect(() => {
+    if (Platform.OS === 'web') {
+      setLoading(false); // skip thumbnail extraction on web
+      return;
+    }
     if (!videoUrl || !keypoints?.length) {
       setLoading(false);
       return;

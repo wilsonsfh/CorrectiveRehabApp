@@ -150,6 +150,7 @@ const HomeScreen = ({ navigation }) => {
       color: '#A78BFA',
       glow: 'rgba(167, 139, 250, 0.12)',
       subtitle: 'Track Gains',
+      onPress: () => navigation.navigate('History'),
     },
   ];
 

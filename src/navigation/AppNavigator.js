@@ -2,8 +2,9 @@ import React from 'react';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, Library, Activity, User } from 'lucide-react-native';
+import { Home, Library, Activity, User, History } from 'lucide-react-native';
 import HomeScreen from '../screens/HomeScreen';
+import SessionHistoryScreen from '../screens/SessionHistoryScreen';
 import LibraryScreen from '../screens/LibraryScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import LogScreen from '../screens/LogScreen';
@@ -72,6 +73,11 @@ function TabNavigator() {
         name="Library"
         component={LibraryStack}
         options={{ tabBarIcon: ({ color, size }) => <Library color={color} size={size} /> }}
+      />
+      <Tab.Screen
+        name="History"
+        component={SessionHistoryScreen}
+        options={{ tabBarIcon: ({ color, size }) => <History color={color} size={size} /> }}
       />
       <Tab.Screen
         name="Log"

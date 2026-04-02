@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +27,7 @@ function AngleThumbnail({ keypoints, issues, storagePath }) {
   const [thumbUri, setThumbUri] = useState(null);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return; // expo-video-thumbnails not supported on web
     if (!storagePath || !keypoints?.length) return;
     let cancelled = false;
 
