@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -22,18 +21,20 @@ export default function LoginScreen() {
   const [code, setCode] = useState('');
   const [step, setStep] = useState('email'); // 'email' | 'code'
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const codeInputRef = useRef(null);
 
   const handleSendCode = async () => {
+    setErrorMsg('');
     if (!email.trim()) {
-      Alert.alert('Email Required', 'Enter your email to receive a code.');
+      setErrorMsg('Enter your email to receive a code.');
       return;
     }
     setLoading(true);
     const { error } = await sendOtp(email.trim());
     setLoading(false);
     if (error) {
-      Alert.alert('Error', error.message);
+      setErrorMsg(error.message);
     } else {
       setStep('code');
       setTimeout(() => codeInputRef.current?.focus(), 300);
@@ -41,15 +42,16 @@ export default function LoginScreen() {
   };
 
   const handleVerifyCode = async () => {
+    setErrorMsg('');
     if (code.length < 6) {
-      Alert.alert('Invalid Code', 'Enter the code from your email.');
+      setErrorMsg('Enter the 6-digit code from your email.');
       return;
     }
     setLoading(true);
     const { error } = await verifyOtp(email.trim(), code.trim());
     setLoading(false);
     if (error) {
-      Alert.alert('Wrong Code', 'Code is incorrect or expired. Try again.');
+      setErrorMsg('Code is incorrect or expired. Try again.');
       setCode('');
     }
     // on success, AuthContext session updates and App.js renders AppNavigator
@@ -116,6 +118,7 @@ export default function LoginScreen() {
                 </LinearGradient>
               </TouchableOpacity>
 
+              {errorMsg ? <Text style={styles.errorMsg}>{errorMsg}</Text> : null}
               <Text style={styles.disclaimer}>
                 We'll send a login code to your email. No password needed.
               </Text>
@@ -171,9 +174,10 @@ export default function LoginScreen() {
                 </LinearGradient>
               </TouchableOpacity>
 
+              {errorMsg ? <Text style={styles.errorMsg}>{errorMsg}</Text> : null}
               <TouchableOpacity
                 style={styles.backBtn}
-                onPress={() => { setStep('email'); setCode(''); }}
+                onPress={() => { setStep('email'); setCode(''); setErrorMsg(''); }}
                 disabled={loading}
               >
                 <Text style={styles.backBtnText}>Use a different email</Text>
@@ -275,6 +279,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textTertiary,
     textAlign: 'center',
+  },
+  errorMsg: {
+    fontSize: 13,
+    color: COLORS.accent,
+    textAlign: 'center',
+    fontWeight: '600',
+    backgroundColor: COLORS.accentGlow,
+    padding: SPACING.m,
+    borderRadius: RADIUS.m,
   },
   codeHint: {
     fontSize: 14,
