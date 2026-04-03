@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Dimensions, Alert,
+  View, Text, StyleSheet, TouchableOpacity, Dimensions,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +26,7 @@ export default function RecordVideoScreen({ navigation, route }) {
   const [facing, setFacing] = useState('back');
   const [recording, setRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [errorMsg, setErrorMsg] = useState('');
   const cameraRef = useRef(null);
   const timerRef = useRef(null);
 
@@ -50,9 +51,10 @@ export default function RecordVideoScreen({ navigation, route }) {
   const startRecording = async () => {
     if (recording) return;
     if (!cameraRef.current) {
-      Alert.alert('Camera not ready', 'Please wait a moment and try again.');
+      setErrorMsg('Camera not ready. Please wait a moment and try again.');
       return;
     }
+    setErrorMsg('');
     setRecording(true);
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
@@ -67,7 +69,7 @@ export default function RecordVideoScreen({ navigation, route }) {
     } catch (e) {
       // stopRecording() throws a benign error — ignore it
       if (!e.message?.includes('stop') && !e.message?.includes('cancel')) {
-        Alert.alert('Recording failed', e.message);
+        setErrorMsg(`Recording failed: ${e.message}`);
       }
     } finally {
       clearInterval(timerRef.current);
@@ -145,6 +147,13 @@ export default function RecordVideoScreen({ navigation, route }) {
           </View>
         )}
 
+        {/* ERROR */}
+        {!!errorMsg && (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{errorMsg}</Text>
+          </View>
+        )}
+
         {/* RECORD BUTTON */}
         <View style={styles.bottomBar}>
           <TouchableOpacity
@@ -210,6 +219,11 @@ const styles = StyleSheet.create({
   recordBtnInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.danger },
   recordBtnInnerStop: { width: 28, height: 28, borderRadius: 6, backgroundColor: COLORS.danger },
   recordHint: { color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '500' },
+  errorBanner: {
+    marginHorizontal: SPACING.l, padding: SPACING.m, borderRadius: RADIUS.m,
+    backgroundColor: 'rgba(255,71,87,0.85)',
+  },
+  errorText: { color: COLORS.white, fontSize: 13, fontWeight: '600', textAlign: 'center' },
 
   permissionContainer: { flex: 1, backgroundColor: COLORS.background },
   permissionInner: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.l },

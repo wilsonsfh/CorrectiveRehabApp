@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert,
+  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ export default function VideoPreviewScreen({ navigation, route }) {
   const { videoUri, category, angleIndex, currentAngle, sessionId, recordedAngles } = route.params;
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const player = useVideoPlayer(videoUri, p => { p.loop = true; p.play(); });
 
@@ -22,7 +23,17 @@ export default function VideoPreviewScreen({ navigation, route }) {
 
   const handleAccept = async () => {
     setSaving(true);
+    setErrorMsg('');
+    try {
+      await doSave();
+    } catch (e) {
+      setErrorMsg(e.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
+  const doSave = async () => {
     // Create a draft gym_session row if none exists yet
     let currentSessionId = sessionId;
     if (!currentSessionId) {
@@ -37,11 +48,7 @@ export default function VideoPreviewScreen({ navigation, route }) {
         .select()
         .single();
 
-      if (sessionError) {
-        setSaving(false);
-        Alert.alert('Error', 'Failed to create session. Please try again.');
-        return;
-      }
+      if (sessionError) throw new Error('Failed to create session. Please try again.');
       currentSessionId = session.id;
     }
 
@@ -54,11 +61,7 @@ export default function VideoPreviewScreen({ navigation, route }) {
       .from('session-videos')
       .upload(storagePath, arrayBuffer, { contentType: 'video/mp4', upsert: true });
 
-    if (uploadError) {
-      setSaving(false);
-      Alert.alert('Upload Failed', 'Could not upload video. Please try again.');
-      return;
-    }
+    if (uploadError) throw new Error('Could not upload video. Please try again.');
 
     // Save session_videos row
     const { error: insertError } = await supabase.from('session_videos').insert({
@@ -69,13 +72,7 @@ export default function VideoPreviewScreen({ navigation, route }) {
       storage_path: storagePath,
     });
 
-    if (insertError) {
-      setSaving(false);
-      Alert.alert('Save Failed', 'Video uploaded but could not be saved. Please try again.');
-      return;
-    }
-
-    setSaving(false);
+    if (insertError) throw new Error('Video uploaded but could not be saved. Please try again.');
 
     const updatedRecordedAngles = [...recordedAngles, currentAngle.toLowerCase()];
 
@@ -123,6 +120,7 @@ export default function VideoPreviewScreen({ navigation, route }) {
             </Text>
           )}
 
+          {!!errorMsg && <Text style={styles.errorMsg}>{errorMsg}</Text>}
           <View style={styles.actions}>
             <TouchableOpacity
               style={styles.retakeBtn}
@@ -208,4 +206,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14, gap: SPACING.s,
   },
   acceptBtnText: { color: COLORS.background, fontWeight: '800', fontSize: 15 },
+  errorMsg: {
+    color: COLORS.danger ?? '#ff4757', fontSize: 13, fontWeight: '600',
+    textAlign: 'center', paddingVertical: SPACING.xs,
+  },
 });
