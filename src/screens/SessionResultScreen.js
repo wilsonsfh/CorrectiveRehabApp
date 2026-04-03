@@ -13,7 +13,7 @@ import {
   CheckCircle, AlertTriangle, ChevronRight, X, Eye, GitCompare, Sparkles,
 } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
-import { generateCoachSummary } from '../lib/aiSummary';
+import { generateCoachSummary, availableProviders } from '../lib/aiSummary';
 
 const SEVERITY_COLORS = {
   mild: COLORS.success,
@@ -94,16 +94,19 @@ export default function SessionResultScreen({ navigation, route }) {
   const [previousSession, setPreviousSession] = useState(null);
   const [coachSummary, setCoachSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const providers = availableProviders();
+  const [activeProvider, setActiveProvider] = useState(() => providers[0] ?? null);
 
-  // Generate AI coaching summary when results are available
+  // Generate AI coaching summary when results or active provider changes
   useEffect(() => {
-    if (!results.length || !category?.label) return;
+    if (!results.length || !category?.label || !activeProvider) return;
     setSummaryLoading(true);
-    generateCoachSummary(category.label, results).then(summary => {
-      setCoachSummary(summary);
-      setSummaryLoading(false);
-    });
-  }, []);
+    setCoachSummary(null);
+    generateCoachSummary(activeProvider, category.label, results)
+      .then(summary => { setCoachSummary(summary); })
+      .catch(() => {})
+      .finally(() => setSummaryLoading(false));
+  }, [activeProvider]);
 
   // Check for a previous analyzed session with the same lift category
   useEffect(() => {
@@ -251,20 +254,41 @@ export default function SessionResultScreen({ navigation, route }) {
           )}
 
           {/* AI Coach Summary */}
-          {(summaryLoading || coachSummary) && (
+          {activeProvider && (
             <View style={styles.summaryCard}>
               <View style={styles.summaryHeader}>
                 <Sparkles color={COLORS.primary} size={14} />
                 <Text style={styles.summaryLabel}>AI COACH SUMMARY</Text>
               </View>
+
+              {/* Provider toggle — only shown when both keys are configured */}
+              {providers.length > 1 && (
+                <View style={styles.providerToggle}>
+                  {providers.map(p => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[styles.providerPill, activeProvider.id === p.id && styles.providerPillActive]}
+                      onPress={() => setActiveProvider(p)}
+                      activeOpacity={0.7}
+                      disabled={summaryLoading}
+                    >
+                      <Text style={[styles.providerPillText, activeProvider.id === p.id && styles.providerPillTextActive]}>
+                        {p.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              <Text style={styles.providerTagline}>{activeProvider.tagline}</Text>
+
               {summaryLoading ? (
                 <View style={styles.summaryLoading}>
                   <ActivityIndicator color={COLORS.primary} size="small" />
                   <Text style={styles.summaryLoadingText}>Generating analysis…</Text>
                 </View>
-              ) : (
+              ) : coachSummary ? (
                 <Text style={styles.summaryText}>{coachSummary}</Text>
-              )}
+              ) : null}
             </View>
           )}
 
@@ -339,7 +363,7 @@ export default function SessionResultScreen({ navigation, route }) {
               </View>
 
               {/* Issues */}
-              {result.issues.length === 0 ? (
+              {(result.issues?.length ?? 0) === 0 ? (
                 <View style={styles.noIssues}>
                   <CheckCircle color={COLORS.success} size={16} />
                   <Text style={styles.noIssuesText}>No issues detected</Text>
@@ -454,6 +478,22 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 11, fontWeight: '700', color: COLORS.primary, letterSpacing: 1.5,
+  },
+  providerToggle: {
+    flexDirection: 'row', gap: SPACING.s, marginBottom: SPACING.xs,
+  },
+  providerPill: {
+    paddingHorizontal: SPACING.m, paddingVertical: 6,
+    borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.background,
+  },
+  providerPillActive: {
+    backgroundColor: COLORS.primaryGlow, borderColor: COLORS.primary,
+  },
+  providerPillText: { fontSize: 12, fontWeight: '700', color: COLORS.textTertiary },
+  providerPillTextActive: { color: COLORS.primary },
+  providerTagline: {
+    fontSize: 11, color: COLORS.textTertiary, marginBottom: SPACING.m, fontWeight: '500',
   },
   summaryLoading: { flexDirection: 'row', alignItems: 'center', gap: SPACING.m },
   summaryLoadingText: { fontSize: 13, color: COLORS.textTertiary },

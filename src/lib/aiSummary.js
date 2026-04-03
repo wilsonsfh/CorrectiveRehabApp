@@ -1,20 +1,41 @@
 // @ts-check
 /** @typedef {import('../types').AnalysisResult} AnalysisResult */
 
-const PROVIDERS = {
+/**
+ * @typedef {{ id: string, name: string, tagline: string, url: string, model: string, key: () => string|undefined, placeholder: string }} Provider
+ */
+
+/** @type {Record<string, Provider>} */
+export const PROVIDERS = {
   groq: {
+    id: 'groq',
+    name: 'Groq',
+    tagline: '⚡ Fastest — best for quick post-set feedback',
     url: 'https://api.groq.com/openai/v1/chat/completions',
     model: 'llama-3.3-70b-versatile',
     key: () => process.env.EXPO_PUBLIC_GROQ_API_KEY,
     placeholder: 'your_groq_api_key_here',
   },
   deepseek: {
+    id: 'deepseek',
+    name: 'Deepseek',
+    tagline: '🧠 Analytical — best for detailed movement breakdowns',
     url: 'https://api.deepseek.com/chat/completions',
     model: 'deepseek-chat',
     key: () => process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY,
     placeholder: 'your_deepseek_api_key_here',
   },
 };
+
+/**
+ * Returns which providers have real API keys configured.
+ * @returns {Provider[]}
+ */
+export function availableProviders() {
+  return Object.values(PROVIDERS).filter(
+    p => { const k = p.key(); return k && k !== p.placeholder; }
+  );
+}
 
 /**
  * Build a coaching prompt from per-angle analysis results.
@@ -56,12 +77,15 @@ Rules: No filler phrases ("Great job", "It looks like", "Overall"). Be direct an
 }
 
 /**
- * Call one provider. Returns the summary string or null on any failure.
- * @param {{ url: string, model: string, key: () => string|undefined, placeholder: string }} provider
- * @param {string} prompt
+ * Generate a coaching summary using a specific provider.
+ * Returns null if the key is missing or the request fails.
+ * @param {Provider} provider
+ * @param {string} categoryLabel
+ * @param {AnalysisResult[]} results
  * @returns {Promise<string|null>}
  */
-async function callProvider(provider, prompt) {
+export async function generateCoachSummary(provider, categoryLabel, results) {
+  if (!results?.length) return null;
   const apiKey = provider.key();
   if (!apiKey || apiKey === provider.placeholder) return null;
 
@@ -74,7 +98,7 @@ async function callProvider(provider, prompt) {
       },
       body: JSON.stringify({
         model: provider.model,
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content: buildPrompt(categoryLabel, results) }],
         max_tokens: 200,
         temperature: 0.4,
       }),
@@ -85,22 +109,4 @@ async function callProvider(provider, prompt) {
   } catch {
     return null;
   }
-}
-
-/**
- * Generate an AI coaching summary for a session.
- * Tries Groq first (faster), falls back to Deepseek.
- * Returns null if neither key is configured or both fail.
- * @param {string} categoryLabel
- * @param {AnalysisResult[]} results
- * @returns {Promise<string|null>}
- */
-export async function generateCoachSummary(categoryLabel, results) {
-  if (!results?.length) return null;
-  const prompt = buildPrompt(categoryLabel, results);
-
-  const summary = await callProvider(PROVIDERS.groq, prompt);
-  if (summary) return summary;
-
-  return callProvider(PROVIDERS.deepseek, prompt);
 }
