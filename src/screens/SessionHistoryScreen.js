@@ -70,6 +70,13 @@ function SessionRow({ session, prevScore, onView, onCompare }) {
         <Text style={styles.sessionAngles}>
           {session.angles.join(' · ').toUpperCase()} · {session.angles.length} angle{session.angles.length !== 1 ? 's' : ''}
         </Text>
+        {session.topIssue ? (
+          <Text style={styles.sessionTopIssue}>
+            ⚠ {session.topIssue}{session.issueCount > 1 ? ` +${session.issueCount - 1} more` : ''}
+          </Text>
+        ) : (
+          <Text style={styles.sessionNoIssues}>✓ No issues detected</Text>
+        )}
       </View>
       <View style={styles.sessionRowRight}>
         <DeltaBadge delta={delta} />
@@ -235,15 +242,19 @@ export default function SessionHistoryScreen({ navigation }) {
       // Fetch analysis results for all sessions
       const { data: analysisRows } = await supabase
         .from('analysis_results')
-        .select('session_id, angle, symmetry_score')
+        .select('session_id, angle, symmetry_score, issues')
         .in('session_id', sessionIds);
 
-      // Build a score map: sessionId → { avgScore, angles }
+      // Build a score map: sessionId → { avgScore, angles, allIssues }
+      const SEVERITY_RANK = { severe: 2, moderate: 1, mild: 0 };
       const scoreMap = {};
       for (const row of analysisRows ?? []) {
-        if (!scoreMap[row.session_id]) scoreMap[row.session_id] = { scores: [], angles: [] };
+        if (!scoreMap[row.session_id]) scoreMap[row.session_id] = { scores: [], angles: [], allIssues: [] };
         scoreMap[row.session_id].scores.push(row.symmetry_score);
         scoreMap[row.session_id].angles.push(row.angle);
+        for (const issue of row.issues ?? []) {
+          scoreMap[row.session_id].allIssues.push(issue);
+        }
       }
 
       // Group sessions by category
@@ -253,6 +264,9 @@ export default function SessionHistoryScreen({ navigation }) {
         if (!sm) continue; // No analysis yet — skip
 
         const avgScore = Math.round(sm.scores.reduce((a, b) => a + b, 0) / sm.scores.length);
+        const sortedIssues = [...sm.allIssues].sort(
+          (a, b) => (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0)
+        );
         const session = {
           id: s.id,
           date: s.date || s.created_at,
@@ -260,6 +274,8 @@ export default function SessionHistoryScreen({ navigation }) {
           angles: [...new Set(sm.angles)],
           categoryLabel: s.category_label,
           categoryId: s.category_id,
+          issueCount: sm.allIssues.length,
+          topIssue: sortedIssues[0]?.label ?? null,
         };
 
         if (!grouped[s.category_id]) {
@@ -575,6 +591,18 @@ const styles = StyleSheet.create({
     color: COLORS.textTertiary,
     marginTop: 2,
     letterSpacing: 0.5,
+  },
+  sessionTopIssue: {
+    fontSize: 11,
+    color: '#F59E0B',
+    fontWeight: '600',
+    marginTop: 3,
+  },
+  sessionNoIssues: {
+    fontSize: 11,
+    color: COLORS.success,
+    fontWeight: '600',
+    marginTop: 3,
   },
   sessionRowRight: {
     flexDirection: 'row',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
-  ScrollView, ActivityIndicator, Alert,
+  ScrollView, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,6 +21,7 @@ export default function LinkSessionScreen({ navigation, route }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => { fetchTodaySessions(); }, []);
 
@@ -53,7 +54,7 @@ export default function LinkSessionScreen({ navigation, route }) {
 
     if (error) {
       setSaving(false);
-      Alert.alert('Error', error.message);
+      setErrorMsg(error.message);
       return;
     }
 
@@ -82,24 +83,14 @@ export default function LinkSessionScreen({ navigation, route }) {
     try {
       const { results, hasFailure } = await analyzeSession(selectedSessionId, user.id);
 
-      if (hasFailure && results.length > 0) {
-        Alert.alert(
-          'Partial Analysis',
-          'Some angles could not be analyzed. Showing available results.',
-        );
-      }
-
       navigation.navigate('SessionResult', {
         sessionId: selectedSessionId,
         category,
         analysisResults: results,
       });
     } catch (err) {
-      Alert.alert(
-        'Analysis Failed',
-        'Session saved but analysis could not complete. You can view results later.',
-        [{ text: 'OK', onPress: () => navigation.popToTop() }],
-      );
+      setErrorMsg('Session saved — analysis could not complete. Check History to view results later.');
+      setTimeout(() => navigation.popToTop(), 3000);
     } finally {
       setAnalyzing(false);
     }
@@ -183,6 +174,9 @@ export default function LinkSessionScreen({ navigation, route }) {
         </ScrollView>
 
         <View style={styles.footer}>
+          {!!errorMsg && (
+            <Text style={styles.errorMsg}>{errorMsg}</Text>
+          )}
           <TouchableOpacity
             style={[styles.confirmBtn, (!selectedSessionId || saving || analyzing) && { opacity: 0.6 }]}
             onPress={handleConfirm}
@@ -265,6 +259,10 @@ const styles = StyleSheet.create({
   habitChipText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 13 },
   habitChipTextSelected: { color: COLORS.primary },
 
+  errorMsg: {
+    color: COLORS.danger ?? '#ff4757', fontSize: 13, fontWeight: '600',
+    textAlign: 'center', marginBottom: SPACING.s,
+  },
   footer: { padding: SPACING.m, paddingBottom: SPACING.l },
   confirmBtn: { borderRadius: RADIUS.m, overflow: 'hidden' },
   confirmBtnGradient: {

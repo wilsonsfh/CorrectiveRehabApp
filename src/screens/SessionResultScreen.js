@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,9 +10,10 @@ import { GYM_HABITS } from '../data/mockData';
 import { supabase } from '../lib/supabase';
 import SkeletonOverlay from '../components/SkeletonOverlay';
 import {
-  CheckCircle, AlertTriangle, ChevronRight, X, Eye, GitCompare,
+  CheckCircle, AlertTriangle, ChevronRight, X, Eye, GitCompare, Sparkles,
 } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { generateCoachSummary } from '../lib/aiSummary';
 
 const SEVERITY_COLORS = {
   mild: COLORS.success,
@@ -91,6 +92,18 @@ export default function SessionResultScreen({ navigation, route }) {
   const { user } = useAuth();
   const results = analysisResults ?? [];
   const [previousSession, setPreviousSession] = useState(null);
+  const [coachSummary, setCoachSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  // Generate AI coaching summary when results are available
+  useEffect(() => {
+    if (!results.length || !category?.label) return;
+    setSummaryLoading(true);
+    generateCoachSummary(category.label, results).then(summary => {
+      setCoachSummary(summary);
+      setSummaryLoading(false);
+    });
+  }, []);
 
   // Check for a previous analyzed session with the same lift category
   useEffect(() => {
@@ -234,6 +247,24 @@ export default function SessionResultScreen({ navigation, route }) {
           ) : (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>No analysis results available</Text>
+            </View>
+          )}
+
+          {/* AI Coach Summary */}
+          {(summaryLoading || coachSummary) && (
+            <View style={styles.summaryCard}>
+              <View style={styles.summaryHeader}>
+                <Sparkles color={COLORS.primary} size={14} />
+                <Text style={styles.summaryLabel}>AI COACH SUMMARY</Text>
+              </View>
+              {summaryLoading ? (
+                <View style={styles.summaryLoading}>
+                  <ActivityIndicator color={COLORS.primary} size="small" />
+                  <Text style={styles.summaryLoadingText}>Generating analysis…</Text>
+                </View>
+              ) : (
+                <Text style={styles.summaryText}>{coachSummary}</Text>
+              )}
             </View>
           )}
 
@@ -411,6 +442,22 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.border, marginBottom: SPACING.l,
   },
   emptyText: { color: COLORS.textTertiary, fontSize: 15 },
+
+  // AI Summary
+  summaryCard: {
+    backgroundColor: COLORS.surface, borderRadius: RADIUS.l,
+    padding: SPACING.m, borderWidth: 1, borderColor: COLORS.primary + '30',
+    marginBottom: SPACING.l,
+  },
+  summaryHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, marginBottom: SPACING.m,
+  },
+  summaryLabel: {
+    fontSize: 11, fontWeight: '700', color: COLORS.primary, letterSpacing: 1.5,
+  },
+  summaryLoading: { flexDirection: 'row', alignItems: 'center', gap: SPACING.m },
+  summaryLoadingText: { fontSize: 13, color: COLORS.textTertiary },
+  summaryText: { fontSize: 14, color: COLORS.textSecondary, lineHeight: 22 },
 
   // Compare button
   compareBtn: {
