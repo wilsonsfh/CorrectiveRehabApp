@@ -136,7 +136,7 @@ export default function SessionSetupScreen({ navigation, route }) {
               ) : (
                 <View style={styles.firstTimeCard}>
                   <Text style={styles.firstTimeText}>
-                    First time recording {selectedCategory.label}. We'll record {selectedCategory.angles.join(' and ')} angles.
+                    First time recording {selectedCategory.label}. We&apos;ll record {selectedCategory.angles.join(' and ')} angles.
                   </Text>
                 </View>
               )}

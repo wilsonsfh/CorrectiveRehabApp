@@ -273,7 +273,7 @@ const DailyForm = ({ navigation, user, preselectedHabitIds }) => {
       <View style={styles.infoCard}>
         <Sun color={COLORS.primary} size={16} />
         <Text style={styles.infoText}>
-          These habits reinforce the asymmetries you've logged in your gym sessions.
+          These habits reinforce the asymmetries you&apos;ve logged in your gym sessions.
           Tracking them helps identify root causes.
         </Text>
       </View>

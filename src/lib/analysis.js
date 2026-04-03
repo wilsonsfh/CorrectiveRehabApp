@@ -1,3 +1,8 @@
+// @ts-check
+/** @typedef {import('../types').AnalysisResult} AnalysisResult */
+/** @typedef {import('../types').ServerAnalysisResponse} ServerAnalysisResponse */
+/** @typedef {import('../types').SessionVideo} SessionVideo */
+
 import { supabase } from './supabase';
 
 const ANALYSIS_SERVER_URL = process.env.EXPO_PUBLIC_ANALYSIS_SERVER_URL;
@@ -31,6 +36,10 @@ async function callAnalysisServer({ storagePath, categoryId, angle, userId, sess
 /**
  * Analyze a single video — call server then write result to DB.
  * App writes to DB (not server) to maintain RLS via user's JWT.
+ * @param {SessionVideo} video
+ * @param {string} userId
+ * @param {string} sessionId
+ * @returns {Promise<AnalysisResult>}
  */
 export async function analyzeVideo(video, userId, sessionId) {
   const serverResult = await callAnalysisServer({

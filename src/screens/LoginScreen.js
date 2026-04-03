@@ -120,7 +120,7 @@ export default function LoginScreen() {
 
               {errorMsg ? <Text style={styles.errorMsg}>{errorMsg}</Text> : null}
               <Text style={styles.disclaimer}>
-                We'll send a login code to your email. No password needed.
+                We&apos;ll send a login code to your email. No password needed.
               </Text>
             </View>
           ) : (
