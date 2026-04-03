@@ -20,6 +20,7 @@ import {
   CheckCircle,
   Zap,
 } from 'lucide-react-native';
+import { EXERCISES } from '../data/mockData';
 
 const DIFFICULTY_COLORS = {
   Beginner: COLORS.success,
@@ -28,15 +29,27 @@ const DIFFICULTY_COLORS = {
 };
 
 const ExerciseDetailScreen = ({ route, navigation }) => {
-  const { exercise } = route.params;
+  const { exerciseId } = route.params;
+  const exercise = EXERCISES.find(e => e.id === exerciseId);
   const { user } = useAuth();
   const [completed, setCompleted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const player = useVideoPlayer(exercise.videoUrl, (player) => {
+  const player = useVideoPlayer(exercise?.videoUrl ?? null, (player) => {
     player.loop = true;
   });
+
+  if (!exercise) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <ChevronLeft color={COLORS.white} size={28} />
+        </TouchableOpacity>
+        <Text style={{ color: COLORS.textSecondary }}>Exercise not found.</Text>
+      </View>
+    );
+  }
 
   const diffColor = DIFFICULTY_COLORS[exercise.difficulty] || COLORS.primary;
 

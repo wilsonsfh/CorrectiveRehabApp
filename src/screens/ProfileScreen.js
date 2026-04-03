@@ -13,7 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { User, LogOut, Activity, CheckCircle, Calendar } from 'lucide-react-native';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { user, signOut } = useAuth();
   const [stats, setStats] = useState({ logs: 0, sessions: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
@@ -87,7 +87,7 @@ export default function ProfileScreen() {
 
           {/* Stats */}
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Log')}>
               {loadingStats ? (
                 <ActivityIndicator color={COLORS.primary} size="small" />
               ) : (
@@ -97,8 +97,8 @@ export default function ProfileScreen() {
                 <Activity color={COLORS.accent} size={14} />
                 <Text style={styles.statLabel}>Habits Logged</Text>
               </View>
-            </View>
-            <View style={styles.statCard}>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Library')}>
               {loadingStats ? (
                 <ActivityIndicator color={COLORS.primary} size="small" />
               ) : (
@@ -110,7 +110,7 @@ export default function ProfileScreen() {
                 <CheckCircle color={COLORS.success} size={14} />
                 <Text style={styles.statLabel}>Exercises Done</Text>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Logout */}

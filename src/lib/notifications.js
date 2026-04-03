@@ -1,14 +1,18 @@
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { supabase } from './supabase';
 import { GYM_HABITS, getRelatedDailyHabits } from '../data/mockData';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+// expo-notifications scheduling APIs are not available on web
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export async function requestNotificationPermission() {
   const { status: existing } = await Notifications.getPermissionsAsync();
@@ -76,6 +80,7 @@ function buildNotificationContent(recentHabits) {
 }
 
 export async function scheduleDailyNotifications(userId) {
+  if (Platform.OS === 'web') return; // scheduling not supported on web
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   const gymToday = await hasGymSessionToday(userId);

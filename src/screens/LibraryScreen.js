@@ -23,7 +23,7 @@ const LibraryScreen = ({ navigation }) => {
   const renderItem = ({ item, index }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('ExerciseDetail', { exercise: item })}
+      onPress={() => navigation.navigate('ExerciseDetail', { exerciseId: item.id })}
       activeOpacity={0.7}
     >
       <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />

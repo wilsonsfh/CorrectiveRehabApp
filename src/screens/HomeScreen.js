@@ -315,7 +315,13 @@ const HomeScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.alertCard}
                 activeOpacity={0.8}
-                onPress={() => navigation.navigate('Library')}
+                onPress={() => suggestedExercise
+                  ? navigation.navigate('Library', {
+                      screen: 'ExerciseDetail',
+                      params: { exerciseId: suggestedExercise.id },
+                    })
+                  : navigation.navigate('Library')
+                }
               >
                 <LinearGradient
                   colors={[COLORS.accentGlow, 'transparent']}
@@ -375,18 +381,18 @@ const HomeScreen = ({ navigation }) => {
 
           {/* ─── QUICK STATS ─── */}
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Log')}>
               <Text style={styles.statValue}>{stats.logs}</Text>
               <Text style={styles.statLabel}>Sessions{'\n'}Logged</Text>
-            </View>
-            <View style={styles.statCard}>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Log')}>
               <Text style={[styles.statValue, { color: COLORS.accent }]}>{stats.activeIssues}</Text>
               <Text style={styles.statLabel}>Active{'\n'}Asymmetries</Text>
-            </View>
-            <View style={styles.statCard}>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Library')}>
               <Text style={[styles.statValue, { color: COLORS.success }]}>{stats.sessions}</Text>
               <Text style={styles.statLabel}>Exercises{'\n'}Completed</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           <View style={{ height: SPACING.xl }} />
