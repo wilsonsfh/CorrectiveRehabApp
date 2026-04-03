@@ -1,3 +1,4 @@
+// @ts-check
 import { Platform } from 'react-native';
 import { createClient } from '@supabase/supabase-js';
 
