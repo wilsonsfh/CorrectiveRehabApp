@@ -385,11 +385,11 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.statValue}>{stats.logs}</Text>
               <Text style={styles.statLabel}>Sessions{'\n'}Logged</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Log')}>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('HabitHistory')}>
               <Text style={[styles.statValue, { color: COLORS.accent }]}>{stats.activeIssues}</Text>
               <Text style={styles.statLabel}>Active{'\n'}Asymmetries</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Library')}>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('ExerciseHistory')}>
               <Text style={[styles.statValue, { color: COLORS.success }]}>{stats.sessions}</Text>
               <Text style={styles.statLabel}>Exercises{'\n'}Completed</Text>
             </TouchableOpacity>

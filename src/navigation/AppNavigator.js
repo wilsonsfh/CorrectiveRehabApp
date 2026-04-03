@@ -16,6 +16,8 @@ import LinkSessionScreen from '../screens/LinkSessionScreen';
 import SessionResultScreen from '../screens/SessionResultScreen';
 import SkeletonViewerScreen from '../screens/SkeletonViewerScreen';
 import CompareSessionScreen from '../screens/CompareSessionScreen';
+import HabitHistoryScreen from '../screens/HabitHistoryScreen';
+import ExerciseHistoryScreen from '../screens/ExerciseHistoryScreen';
 import { COLORS } from '../constants/theme';
 import { linking } from '../lib/linking';
 
@@ -135,6 +137,8 @@ export default function AppNavigator({ navigationRef }) {
           component={CompareSessionScreen}
           options={{ presentation: 'modal' }}
         />
+        <RootStack.Screen name="HabitHistory" component={HabitHistoryScreen} />
+        <RootStack.Screen name="ExerciseHistory" component={ExerciseHistoryScreen} />
       </RootStack.Navigator>
     </NavigationContainer>
   );

@@ -87,7 +87,7 @@ export default function ProfileScreen({ navigation }) {
 
           {/* Stats */}
           <View style={styles.statsRow}>
-            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Log')}>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('HabitHistory')}>
               {loadingStats ? (
                 <ActivityIndicator color={COLORS.primary} size="small" />
               ) : (
@@ -98,7 +98,7 @@ export default function ProfileScreen({ navigation }) {
                 <Text style={styles.statLabel}>Habits Logged</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('Library')}>
+            <TouchableOpacity style={styles.statCard} activeOpacity={0.7} onPress={() => navigation.navigate('ExerciseHistory')}>
               {loadingStats ? (
                 <ActivityIndicator color={COLORS.primary} size="small" />
               ) : (
