@@ -12,7 +12,7 @@ import { RotateCcw, CheckCircle, ChevronRight } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 
 export default function VideoPreviewScreen({ navigation, route }) {
-  const { videoUri, category, angleIndex, currentAngle, sessionId, recordedAngles } = route.params;
+  const { videoUri, videoMimeType, category, angleIndex, currentAngle, sessionId, recordedAngles } = route.params;
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -59,7 +59,7 @@ export default function VideoPreviewScreen({ navigation, route }) {
 
     const { error: uploadError } = await supabase.storage
       .from('session-videos')
-      .upload(storagePath, arrayBuffer, { contentType: 'video/mp4', upsert: true });
+      .upload(storagePath, arrayBuffer, { contentType: videoMimeType ?? 'video/mp4', upsert: true });
 
     if (uploadError) throw new Error('Could not upload video. Please try again.');
 

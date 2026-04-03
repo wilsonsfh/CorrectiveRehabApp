@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +18,7 @@ export default function ProfileScreen() {
   const [stats, setStats] = useState({ logs: 0, sessions: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -49,7 +49,7 @@ export default function ProfileScreen() {
     setLoggingOut(true);
     const { error } = await signOut();
     if (error) {
-      Alert.alert('Error', error.message);
+      setSignOutError(error.message);
       setLoggingOut(false);
     }
   }
@@ -114,6 +114,9 @@ export default function ProfileScreen() {
           </View>
 
           {/* Logout */}
+          {!!signOutError && (
+            <Text style={styles.signOutError}>{signOutError}</Text>
+          )}
           <TouchableOpacity
             style={styles.logoutBtn}
             onPress={handleSignOut}
@@ -233,5 +236,12 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     fontWeight: '700',
     fontSize: 16,
+  },
+  signOutError: {
+    color: COLORS.danger,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: SPACING.s,
   },
 });

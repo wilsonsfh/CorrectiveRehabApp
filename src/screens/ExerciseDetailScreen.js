@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -33,6 +32,7 @@ const ExerciseDetailScreen = ({ route, navigation }) => {
   const { user } = useAuth();
   const [completed, setCompleted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const player = useVideoPlayer(exercise.videoUrl, (player) => {
     player.loop = true;
@@ -53,7 +53,7 @@ const ExerciseDetailScreen = ({ route, navigation }) => {
     setSaving(false);
 
     if (error) {
-      Alert.alert('Error', error.message);
+      setErrorMsg(error.message);
       return;
     }
 
@@ -136,6 +136,9 @@ const ExerciseDetailScreen = ({ route, navigation }) => {
         </View>
 
         {/* Complete button */}
+        {!!errorMsg && (
+          <Text style={styles.errorMsg}>{errorMsg}</Text>
+        )}
         <TouchableOpacity
           style={styles.completeBtn}
           activeOpacity={0.8}
@@ -306,6 +309,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 16,
     letterSpacing: 0.5,
+  },
+  errorMsg: {
+    color: COLORS.danger,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: SPACING.s,
   },
 });
 
